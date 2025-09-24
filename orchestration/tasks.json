@@ -248,7 +248,7 @@
         "payments.v1",
         "lms.v1"
       ],
-      "state": "todo"
+      "state": "done"
     },
     {
       "id": "devops.v1",
@@ -274,7 +274,7 @@
       "deps": [
         "architecture.v1"
       ],
-      "state": "todo"
+      "state": "done"
     },
     {
       "id": "seeder.v1",
@@ -298,12 +298,12 @@
       "deps": [
         "schema.v1"
       ],
-      "state": "todo"
+      "state": "done"
     }
   ],
   "metadata": {
     "version": "1.0.0",
     "created": "2024-01-24T10:00:00Z",
-    "last_updated": "2025-09-24T21:50:33.223Z"
+    "last_updated": "2025-09-24T22:43:11.250Z"
   }
 }

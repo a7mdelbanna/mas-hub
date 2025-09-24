@@ -1,0 +1,396 @@
+name: Security Vulnerability Scanning
+
+on:
+  push:
+    branches: [ main, develop, staging ]
+  pull_request:
+    branches: [ main, develop ]
+  schedule:
+    # Run daily at 2 AM UTC
+    - cron: '0 2 * * *'
+  workflow_dispatch:
+
+env:
+  NODE_VERSION: '18'
+
+jobs:
+  dependency-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: |
+          npm ci
+          cd functions && npm ci
+
+      - name: Run npm audit
+        run: |
+          echo "Scanning frontend dependencies..."
+          npm audit --audit-level=moderate --json > frontend-audit.json || true
+          npm audit --audit-level=moderate
+
+          echo "Scanning backend dependencies..."
+          cd functions
+          npm audit --audit-level=moderate --json > ../functions-audit.json || true
+          npm audit --audit-level=moderate
+
+      - name: Upload audit results
+        uses: actions/upload-artifact@v3
+        with:
+          name: dependency-audit-results
+          path: |
+            frontend-audit.json
+            functions-audit.json
+
+      - name: Check for critical vulnerabilities
+        run: |
+          echo "Checking for critical vulnerabilities..."
+          if npm audit --audit-level=critical; then
+            echo "✅ No critical vulnerabilities found in frontend"
+          else
+            echo "❌ Critical vulnerabilities found in frontend"
+            exit 1
+          fi
+
+          cd functions
+          if npm audit --audit-level=critical; then
+            echo "✅ No critical vulnerabilities found in functions"
+          else
+            echo "❌ Critical vulnerabilities found in functions"
+            exit 1
+          fi
+
+  snyk-security-scan:
+    runs-on: ubuntu-latest
+    if: github.event_name != 'schedule'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: |
+          npm ci
+          cd functions && npm ci
+
+      - name: Run Snyk to check for vulnerabilities
+        uses: snyk/actions/node@master
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        with:
+          args: --severity-threshold=high
+
+      - name: Upload Snyk results to GitHub Code Scanning
+        uses: github/codeql-action/upload-sarif@v2
+        if: always()
+        with:
+          sarif_file: snyk.sarif
+
+  codeql-analysis:
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
+    strategy:
+      fail-fast: false
+      matrix:
+        language: [ 'javascript', 'typescript' ]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v2
+        with:
+          languages: ${{ matrix.language }}
+
+      - name: Autobuild
+        uses: github/codeql-action/autobuild@v2
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v2
+        with:
+          category: "/language:${{matrix.language}}"
+
+  semgrep-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run Semgrep
+        uses: returntocorp/semgrep-action@v1
+        with:
+          config: >-
+            p/security-audit
+            p/secrets
+            p/owasp-top-ten
+            p/react
+            p/typescript
+        env:
+          SEMGREP_APP_TOKEN: ${{ secrets.SEMGREP_APP_TOKEN }}
+
+  secrets-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run TruffleHog OSS
+        uses: trufflesecurity/trufflehog@main
+        with:
+          path: ./
+          base: main
+          head: HEAD
+          extra_args: --debug --only-verified
+
+      - name: GitLeaks scan
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  docker-security-scan:
+    runs-on: ubuntu-latest
+    if: github.event_name != 'schedule'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Build Docker images
+        run: |
+          docker build -t mashub-app:latest .
+          docker build -t mashub-functions:latest ./functions
+
+      - name: Run Trivy vulnerability scanner - App
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: 'mashub-app:latest'
+          format: 'sarif'
+          output: 'trivy-app.sarif'
+
+      - name: Run Trivy vulnerability scanner - Functions
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: 'mashub-functions:latest'
+          format: 'sarif'
+          output: 'trivy-functions.sarif'
+
+      - name: Upload Trivy scan results to GitHub Security tab
+        uses: github/codeql-action/upload-sarif@v2
+        if: always()
+        with:
+          sarif_file: 'trivy-app.sarif'
+
+      - name: Upload Trivy functions scan results
+        uses: github/codeql-action/upload-sarif@v2
+        if: always()
+        with:
+          sarif_file: 'trivy-functions.sarif'
+
+  firebase-security-rules-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install Firebase CLI
+        run: npm install -g firebase-tools
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Test Firestore security rules
+        run: |
+          firebase emulators:exec --only firestore "npm run test:security:firestore" --project=demo-test
+        env:
+          FIRESTORE_EMULATOR_HOST: localhost:8080
+
+      - name: Test Firebase Storage security rules
+        run: |
+          firebase emulators:exec --only storage "npm run test:security:storage" --project=demo-test
+        env:
+          FIREBASE_STORAGE_EMULATOR_HOST: localhost:9199
+
+  web-application-scan:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    steps:
+      - name: OWASP ZAP Full Scan
+        uses: zaproxy/action-full-scan@v0.7.0
+        with:
+          target: 'https://mashub-staging-a0725.web.app'
+          rules_file_name: '.zap/rules.tsv'
+          cmd_options: '-a -j -l WARN'
+
+      - name: Upload ZAP results
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: zap-scan-results
+          path: |
+            report_html.html
+            report_json.json
+            report_md.md
+
+  security-headers-check:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    steps:
+      - name: Check security headers - Staging
+        run: |
+          echo "Checking security headers for staging environment..."
+
+          response=$(curl -I -s "https://mashub-staging-a0725.web.app")
+
+          # Check for security headers
+          if echo "$response" | grep -qi "strict-transport-security"; then
+            echo "✅ HSTS header present"
+          else
+            echo "❌ HSTS header missing"
+          fi
+
+          if echo "$response" | grep -qi "x-frame-options"; then
+            echo "✅ X-Frame-Options header present"
+          else
+            echo "❌ X-Frame-Options header missing"
+          fi
+
+          if echo "$response" | grep -qi "x-content-type-options"; then
+            echo "✅ X-Content-Type-Options header present"
+          else
+            echo "❌ X-Content-Type-Options header missing"
+          fi
+
+          if echo "$response" | grep -qi "content-security-policy"; then
+            echo "✅ CSP header present"
+          else
+            echo "❌ CSP header missing"
+          fi
+
+      - name: SSL/TLS configuration check
+        run: |
+          echo "Checking SSL/TLS configuration..."
+
+          # Check SSL Labs rating (simplified)
+          curl -s "https://api.ssllabs.com/api/v3/analyze?host=mashub-staging-a0725.web.app&publish=off&startNew=on&all=done" || true
+
+  compliance-check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: GDPR compliance check
+        run: |
+          echo "Checking GDPR compliance indicators..."
+
+          # Check for privacy policy references
+          if grep -r -i "privacy\|gdpr\|data protection" src/ > /dev/null; then
+            echo "✅ Privacy/GDPR references found in code"
+          else
+            echo "⚠️ No privacy/GDPR references found"
+          fi
+
+          # Check for data retention policies
+          if grep -r -i "retention\|delete.*data\|anonymize" src/ > /dev/null; then
+            echo "✅ Data retention/deletion references found"
+          else
+            echo "⚠️ No data retention policies found in code"
+          fi
+
+      - name: PCI compliance check
+        run: |
+          echo "Checking PCI compliance indicators..."
+
+          # Check for credit card data handling
+          if grep -r -i "card\|payment\|stripe\|paymob" src/ > /dev/null; then
+            echo "✅ Payment processing code identified"
+
+            # Check for proper tokenization
+            if grep -r -i "token\|encrypt" src/ > /dev/null; then
+              echo "✅ Tokenization/encryption patterns found"
+            else
+              echo "⚠️ No clear tokenization patterns found"
+            fi
+          fi
+
+  security-report:
+    runs-on: ubuntu-latest
+    needs: [dependency-scan, codeql-analysis, semgrep-scan, secrets-scan]
+    if: always()
+    steps:
+      - name: Generate security summary
+        run: |
+          echo "## 🔒 Security Scan Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          if [ "${{ needs.dependency-scan.result }}" == "success" ]; then
+            echo "✅ **Dependency Scan**: No critical vulnerabilities" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ **Dependency Scan**: Issues found" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          if [ "${{ needs.codeql-analysis.result }}" == "success" ]; then
+            echo "✅ **CodeQL Analysis**: No security issues" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ **CodeQL Analysis**: Security issues detected" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          if [ "${{ needs.semgrep-scan.result }}" == "success" ]; then
+            echo "✅ **Semgrep Scan**: No violations" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ **Semgrep Scan**: Security violations found" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          if [ "${{ needs.secrets-scan.result }}" == "success" ]; then
+            echo "✅ **Secrets Scan**: No leaked secrets" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ **Secrets Scan**: Potential secrets detected" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 📋 Recommendations" >> $GITHUB_STEP_SUMMARY
+          echo "- Review all failed checks in the Security tab" >> $GITHUB_STEP_SUMMARY
+          echo "- Update dependencies with known vulnerabilities" >> $GITHUB_STEP_SUMMARY
+          echo "- Address any secrets or sensitive data exposure" >> $GITHUB_STEP_SUMMARY
+
+  notification:
+    runs-on: ubuntu-latest
+    needs: [security-report]
+    if: failure() || (github.event_name == 'schedule' && always())
+    steps:
+      - name: Notify security team
+        uses: 8398a7/action-slack@v3
+        with:
+          status: ${{ job.status }}
+          text: |
+            🔒 Security Scan Results for MAS Hub
+
+            Trigger: ${{ github.event_name }}
+            Branch: ${{ github.ref_name }}
+
+            ${{ job.status == 'success' && '✅ All security checks passed' || '⚠️ Security issues detected - review required' }}
+
+            Check the Security tab for detailed results.
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_SECURITY_WEBHOOK_URL }}

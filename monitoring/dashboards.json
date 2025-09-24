@@ -1,0 +1,528 @@
+{
+  "dashboard": {
+    "id": null,
+    "title": "MAS Hub - Executive Dashboard",
+    "description": "High-level overview of MAS Hub performance and business metrics",
+    "tags": ["mas-hub", "executive", "overview"],
+    "style": "dark",
+    "timezone": "browser",
+    "editable": true,
+    "graphTooltip": 1,
+    "time": {
+      "from": "now-24h",
+      "to": "now"
+    },
+    "timepicker": {
+      "refresh_intervals": ["5s", "10s", "30s", "1m", "5m", "15m", "30m", "1h", "2h", "1d"]
+    },
+    "panels": [
+      {
+        "id": 1,
+        "title": "System Health Overview",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "probe_success{job=\"mas-hub-healthcheck\"}",
+            "legendFormat": "System Status"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "mappings": [
+              {
+                "type": "value",
+                "value": "1",
+                "text": "Online"
+              },
+              {
+                "type": "value",
+                "value": "0",
+                "text": "Offline"
+              }
+            ],
+            "color": {
+              "mode": "thresholds"
+            },
+            "thresholds": {
+              "steps": [
+                {
+                  "color": "red",
+                  "value": 0
+                },
+                {
+                  "color": "green",
+                  "value": 1
+                }
+              ]
+            }
+          }
+        },
+        "gridPos": {
+          "h": 6,
+          "w": 6,
+          "x": 0,
+          "y": 0
+        }
+      },
+      {
+        "id": 2,
+        "title": "Response Time (95th Percentile)",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket[5m])) by (le))",
+            "legendFormat": "Response Time"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "s",
+            "color": {
+              "mode": "thresholds"
+            },
+            "thresholds": {
+              "steps": [
+                {
+                  "color": "green",
+                  "value": 0
+                },
+                {
+                  "color": "yellow",
+                  "value": 1
+                },
+                {
+                  "color": "red",
+                  "value": 2
+                }
+              ]
+            }
+          }
+        },
+        "gridPos": {
+          "h": 6,
+          "w": 6,
+          "x": 6,
+          "y": 0
+        }
+      },
+      {
+        "id": 3,
+        "title": "Error Rate",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "(sum(rate(http_requests_total{status=~\"5..\"}[5m])) / sum(rate(http_requests_total[5m]))) * 100",
+            "legendFormat": "Error Rate"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percent",
+            "color": {
+              "mode": "thresholds"
+            },
+            "thresholds": {
+              "steps": [
+                {
+                  "color": "green",
+                  "value": 0
+                },
+                {
+                  "color": "yellow",
+                  "value": 1
+                },
+                {
+                  "color": "red",
+                  "value": 5
+                }
+              ]
+            }
+          }
+        },
+        "gridPos": {
+          "h": 6,
+          "w": 6,
+          "x": 12,
+          "y": 0
+        }
+      },
+      {
+        "id": 4,
+        "title": "Daily Active Users",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "mas_hub_daily_active_users",
+            "legendFormat": "DAU"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short",
+            "color": {
+              "mode": "palette-classic"
+            }
+          }
+        },
+        "gridPos": {
+          "h": 6,
+          "w": 6,
+          "x": 18,
+          "y": 0
+        }
+      },
+      {
+        "id": 5,
+        "title": "Request Rate",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "sum(rate(http_requests_total[5m])) by (method)",
+            "legendFormat": "{{method}}"
+          }
+        ],
+        "yAxes": [
+          {
+            "label": "Requests/sec",
+            "min": 0
+          }
+        ],
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 0,
+          "y": 6
+        }
+      },
+      {
+        "id": 6,
+        "title": "Response Time Distribution",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.50, sum(rate(http_request_duration_seconds_bucket[5m])) by (le))",
+            "legendFormat": "50th percentile"
+          },
+          {
+            "expr": "histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket[5m])) by (le))",
+            "legendFormat": "95th percentile"
+          },
+          {
+            "expr": "histogram_quantile(0.99, sum(rate(http_request_duration_seconds_bucket[5m])) by (le))",
+            "legendFormat": "99th percentile"
+          }
+        ],
+        "yAxes": [
+          {
+            "label": "Response Time (s)",
+            "min": 0
+          }
+        ],
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 12,
+          "y": 6
+        }
+      },
+      {
+        "id": 7,
+        "title": "Business Metrics",
+        "type": "row",
+        "gridPos": {
+          "h": 1,
+          "w": 24,
+          "x": 0,
+          "y": 14
+        }
+      },
+      {
+        "id": 8,
+        "title": "New Users Today",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "increase(user_registrations_total[24h])",
+            "legendFormat": "New Users"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short",
+            "color": {
+              "mode": "palette-classic"
+            }
+          }
+        },
+        "gridPos": {
+          "h": 6,
+          "w": 4,
+          "x": 0,
+          "y": 15
+        }
+      },
+      {
+        "id": 9,
+        "title": "Projects Created Today",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "increase(projects_created_total[24h])",
+            "legendFormat": "New Projects"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short",
+            "color": {
+              "mode": "palette-classic"
+            }
+          }
+        },
+        "gridPos": {
+          "h": 6,
+          "w": 4,
+          "x": 4,
+          "y": 15
+        }
+      },
+      {
+        "id": 10,
+        "title": "Successful Payments",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "increase(successful_payments_total[24h])",
+            "legendFormat": "Payments"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short",
+            "color": {
+              "mode": "palette-classic"
+            }
+          }
+        },
+        "gridPos": {
+          "h": 6,
+          "w": 4,
+          "x": 8,
+          "y": 15
+        }
+      },
+      {
+        "id": 11,
+        "title": "Revenue Today",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "sum(increase(payment_amount_total[24h]))",
+            "legendFormat": "Revenue"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "currencyUSD",
+            "color": {
+              "mode": "palette-classic"
+            }
+          }
+        },
+        "gridPos": {
+          "h": 6,
+          "w": 4,
+          "x": 12,
+          "y": 15
+        }
+      },
+      {
+        "id": 12,
+        "title": "Support Tickets",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "increase(support_tickets_created_total[24h])",
+            "legendFormat": "New Tickets"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short",
+            "color": {
+              "mode": "palette-classic"
+            }
+          }
+        },
+        "gridPos": {
+          "h": 6,
+          "w": 4,
+          "x": 16,
+          "y": 15
+        }
+      },
+      {
+        "id": 13,
+        "title": "Client Portal Usage",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "increase(client_portal_logins_total[24h])",
+            "legendFormat": "Portal Logins"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short",
+            "color": {
+              "mode": "palette-classic"
+            }
+          }
+        },
+        "gridPos": {
+          "h": 6,
+          "w": 4,
+          "x": 20,
+          "y": 15
+        }
+      },
+      {
+        "id": 14,
+        "title": "Firebase Performance",
+        "type": "row",
+        "gridPos": {
+          "h": 1,
+          "w": 24,
+          "x": 0,
+          "y": 21
+        }
+      },
+      {
+        "id": 15,
+        "title": "Firestore Operations",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "sum(rate(firestore_operations_total[5m])) by (operation_type)",
+            "legendFormat": "{{operation_type}}"
+          }
+        ],
+        "yAxes": [
+          {
+            "label": "Operations/sec",
+            "min": 0
+          }
+        ],
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 0,
+          "y": 22
+        }
+      },
+      {
+        "id": 16,
+        "title": "Firebase Functions Execution",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "sum(rate(firebase_function_executions_total[5m])) by (function_name)",
+            "legendFormat": "{{function_name}}"
+          }
+        ],
+        "yAxes": [
+          {
+            "label": "Executions/sec",
+            "min": 0
+          }
+        ],
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 12,
+          "y": 22
+        }
+      },
+      {
+        "id": 17,
+        "title": "Security & Quality",
+        "type": "row",
+        "gridPos": {
+          "h": 1,
+          "w": 24,
+          "x": 0,
+          "y": 30
+        }
+      },
+      {
+        "id": 18,
+        "title": "Failed Login Attempts",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "sum(rate(failed_login_attempts_total[5m]))",
+            "legendFormat": "Failed Logins"
+          }
+        ],
+        "yAxes": [
+          {
+            "label": "Attempts/sec",
+            "min": 0
+          }
+        ],
+        "gridPos": {
+          "h": 6,
+          "w": 8,
+          "x": 0,
+          "y": 31
+        }
+      },
+      {
+        "id": 19,
+        "title": "Rate Limiting Events",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "sum(rate(rate_limit_exceeded_total[5m]))",
+            "legendFormat": "Rate Limits"
+          }
+        ],
+        "yAxes": [
+          {
+            "label": "Events/sec",
+            "min": 0
+          }
+        ],
+        "gridPos": {
+          "h": 6,
+          "w": 8,
+          "x": 8,
+          "y": 31
+        }
+      },
+      {
+        "id": 20,
+        "title": "API Response Status",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "sum(rate(http_requests_total[5m])) by (status)",
+            "legendFormat": "{{status}}"
+          }
+        ],
+        "yAxes": [
+          {
+            "label": "Requests/sec",
+            "min": 0
+          }
+        ],
+        "gridPos": {
+          "h": 6,
+          "w": 8,
+          "x": 16,
+          "y": 31
+        }
+      }
+    ]
+  }
+}
