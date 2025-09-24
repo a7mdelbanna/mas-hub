@@ -1,0 +1,309 @@
+{
+  "tasks": [
+    {
+      "id": "prd.v1",
+      "title": "Generate PRD from SRS and ERD",
+      "agent": "prd-refinement",
+      "inputs": [
+        "/Users/ahmed/Documents/MasHub/srs.md",
+        "/Users/ahmed/Documents/MasHub/erd.md"
+      ],
+      "outputs": [
+        "/Users/ahmed/Documents/MasHub/docs/PRD.md"
+      ],
+      "acceptance_criteria": [
+        "Complete module scope definition",
+        "User stories with Given/When/Then format",
+        "Traceability matrix present",
+        "Non-functional requirements defined",
+        "TODOs section included"
+      ],
+      "deps": [],
+      "state": "done"
+    },
+    {
+      "id": "architecture.v1",
+      "title": "Design System Architecture",
+      "agent": "solution-architect",
+      "inputs": [
+        "/Users/ahmed/Documents/MasHub/docs/PRD.md"
+      ],
+      "outputs": [
+        "/Users/ahmed/Documents/MasHub/docs/architecture/system-design.md",
+        "/Users/ahmed/Documents/MasHub/docs/architecture/api-spec.yaml",
+        "/Users/ahmed/Documents/MasHub/docs/architecture/deployment.md"
+      ],
+      "acceptance_criteria": [
+        "Microservice boundaries defined",
+        "API contracts specified",
+        "Data flow documented",
+        "Technology stack selected",
+        "Deployment architecture defined"
+      ],
+      "deps": [
+        "prd.v1"
+      ],
+      "state": "done"
+    },
+    {
+      "id": "schema.v1",
+      "title": "Create Data Models and Database Schema",
+      "agent": "data-modeler",
+      "inputs": [
+        "/Users/ahmed/Documents/MasHub/docs/PRD.md",
+        "/Users/ahmed/Documents/MasHub/docs/architecture/system-design.md"
+      ],
+      "outputs": [
+        "/Users/ahmed/Documents/MasHub/src/schema/database.sql",
+        "/Users/ahmed/Documents/MasHub/src/models/*.ts",
+        "/Users/ahmed/Documents/MasHub/docs/data-dictionary.md"
+      ],
+      "acceptance_criteria": [
+        "All entities from ERD implemented",
+        "Indexes defined for performance",
+        "Migrations created",
+        "TypeScript models generated",
+        "Relationships properly mapped"
+      ],
+      "deps": [
+        "architecture.v1"
+      ],
+      "state": "done"
+    },
+    {
+      "id": "rules.v1",
+      "title": "Implement Business Rules Engine",
+      "agent": "rules-engineer",
+      "inputs": [
+        "/Users/ahmed/Documents/MasHub/docs/PRD.md",
+        "/Users/ahmed/Documents/MasHub/src/models/*.ts"
+      ],
+      "outputs": [
+        "/Users/ahmed/Documents/MasHub/src/rules/*.ts",
+        "/Users/ahmed/Documents/MasHub/src/workflows/*.ts",
+        "/Users/ahmed/Documents/MasHub/docs/business-rules.md"
+      ],
+      "acceptance_criteria": [
+        "Approval workflows implemented",
+        "Automation rules defined",
+        "SLA calculations working",
+        "Budget tracking logic complete",
+        "Notification triggers configured"
+      ],
+      "deps": [
+        "schema.v1"
+      ],
+      "state": "todo"
+    },
+    {
+      "id": "design.v1",
+      "title": "Create Design System and UI Components",
+      "agent": "design-system",
+      "inputs": [
+        "/Users/ahmed/Documents/MasHub/docs/PRD.md"
+      ],
+      "outputs": [
+        "/Users/ahmed/Documents/MasHub/src/design-system/*.tsx",
+        "/Users/ahmed/Documents/MasHub/src/styles/*.css",
+        "/Users/ahmed/Documents/MasHub/docs/design-system.md"
+      ],
+      "acceptance_criteria": [
+        "Component library created",
+        "Theme system implemented",
+        "Responsive layouts defined",
+        "Accessibility standards met",
+        "RTL support for Arabic"
+      ],
+      "deps": [
+        "prd.v1"
+      ],
+      "state": "done"
+    },
+    {
+      "id": "frontend.v1",
+      "title": "Build Frontend Application",
+      "agent": "frontend",
+      "inputs": [
+        "/Users/ahmed/Documents/MasHub/docs/PRD.md",
+        "/Users/ahmed/Documents/MasHub/src/design-system/*.tsx",
+        "/Users/ahmed/Documents/MasHub/docs/architecture/api-spec.yaml"
+      ],
+      "outputs": [
+        "/Users/ahmed/Documents/MasHub/src/frontend/**/*.tsx",
+        "/Users/ahmed/Documents/MasHub/src/frontend/**/*.ts"
+      ],
+      "acceptance_criteria": [
+        "All Phase 1 user stories implemented",
+        "Portal routing complete",
+        "State management configured",
+        "API integration working",
+        "Authentication flows complete"
+      ],
+      "deps": [
+        "design.v1",
+        "architecture.v1"
+      ],
+      "state": "todo"
+    },
+    {
+      "id": "backend.v1",
+      "title": "Develop Backend Services",
+      "agent": "backend",
+      "inputs": [
+        "/Users/ahmed/Documents/MasHub/docs/PRD.md",
+        "/Users/ahmed/Documents/MasHub/src/models/*.ts",
+        "/Users/ahmed/Documents/MasHub/src/rules/*.ts",
+        "/Users/ahmed/Documents/MasHub/docs/architecture/api-spec.yaml"
+      ],
+      "outputs": [
+        "/Users/ahmed/Documents/MasHub/src/backend/**/*.ts",
+        "/Users/ahmed/Documents/MasHub/src/api/**/*.ts"
+      ],
+      "acceptance_criteria": [
+        "All API endpoints implemented",
+        "Business logic integrated",
+        "Database operations working",
+        "Authentication/authorization complete",
+        "Error handling implemented"
+      ],
+      "deps": [
+        "schema.v1",
+        "rules.v1"
+      ],
+      "state": "todo"
+    },
+    {
+      "id": "payments.v1",
+      "title": "Implement Payment Processing",
+      "agent": "payments",
+      "inputs": [
+        "/Users/ahmed/Documents/MasHub/docs/PRD.md",
+        "/Users/ahmed/Documents/MasHub/src/backend/**/*.ts"
+      ],
+      "outputs": [
+        "/Users/ahmed/Documents/MasHub/src/payments/*.ts",
+        "/Users/ahmed/Documents/MasHub/src/integrations/stripe/*.ts",
+        "/Users/ahmed/Documents/MasHub/src/integrations/paymob/*.ts"
+      ],
+      "acceptance_criteria": [
+        "Stripe integration complete",
+        "Paymob integration complete",
+        "Manual payment tracking",
+        "Webhook handling implemented",
+        "Payment reconciliation working"
+      ],
+      "deps": [
+        "backend.v1"
+      ],
+      "state": "todo"
+    },
+    {
+      "id": "lms.v1",
+      "title": "Build Learning Management System",
+      "agent": "lms",
+      "inputs": [
+        "/Users/ahmed/Documents/MasHub/docs/PRD.md",
+        "/Users/ahmed/Documents/MasHub/src/backend/**/*.ts"
+      ],
+      "outputs": [
+        "/Users/ahmed/Documents/MasHub/src/lms/**/*.ts",
+        "/Users/ahmed/Documents/MasHub/src/lms/**/*.tsx"
+      ],
+      "acceptance_criteria": [
+        "Course management complete",
+        "Lesson delivery working",
+        "Quiz system functional",
+        "Progress tracking implemented",
+        "Certificate generation working"
+      ],
+      "deps": [
+        "backend.v1",
+        "frontend.v1"
+      ],
+      "state": "todo"
+    },
+    {
+      "id": "qa.v1",
+      "title": "Quality Assurance and Testing",
+      "agent": "qa",
+      "inputs": [
+        "/Users/ahmed/Documents/MasHub/docs/PRD.md",
+        "/Users/ahmed/Documents/MasHub/src/**/*"
+      ],
+      "outputs": [
+        "/Users/ahmed/Documents/MasHub/tests/**/*.test.ts",
+        "/Users/ahmed/Documents/MasHub/tests/e2e/*.spec.ts",
+        "/Users/ahmed/Documents/MasHub/docs/test-report.md"
+      ],
+      "acceptance_criteria": [
+        "Unit tests > 80% coverage",
+        "Integration tests passing",
+        "E2E tests for critical paths",
+        "Performance benchmarks met",
+        "Security tests passed"
+      ],
+      "deps": [
+        "frontend.v1",
+        "backend.v1",
+        "payments.v1",
+        "lms.v1"
+      ],
+      "state": "todo"
+    },
+    {
+      "id": "devops.v1",
+      "title": "Setup DevOps and Deployment",
+      "agent": "devops",
+      "inputs": [
+        "/Users/ahmed/Documents/MasHub/docs/PRD.md",
+        "/Users/ahmed/Documents/MasHub/docs/architecture/deployment.md"
+      ],
+      "outputs": [
+        "/Users/ahmed/Documents/MasHub/docker-compose.yml",
+        "/Users/ahmed/Documents/MasHub/k8s/*.yaml",
+        "/Users/ahmed/Documents/MasHub/.github/workflows/*.yml",
+        "/Users/ahmed/Documents/MasHub/docs/deployment-guide.md"
+      ],
+      "acceptance_criteria": [
+        "Docker containers built",
+        "Kubernetes manifests ready",
+        "CI/CD pipeline configured",
+        "Monitoring setup complete",
+        "Backup strategy implemented"
+      ],
+      "deps": [
+        "architecture.v1"
+      ],
+      "state": "todo"
+    },
+    {
+      "id": "seeder.v1",
+      "title": "Create Seed Data",
+      "agent": "seeder",
+      "inputs": [
+        "/Users/ahmed/Documents/MasHub/docs/PRD.md",
+        "/Users/ahmed/Documents/MasHub/src/models/*.ts"
+      ],
+      "outputs": [
+        "/Users/ahmed/Documents/MasHub/src/seeds/*.ts",
+        "/Users/ahmed/Documents/MasHub/scripts/seed.ts"
+      ],
+      "acceptance_criteria": [
+        "Demo users created",
+        "Sample projects populated",
+        "Test client data ready",
+        "Training courses seeded",
+        "Financial records created"
+      ],
+      "deps": [
+        "schema.v1"
+      ],
+      "state": "todo"
+    }
+  ],
+  "metadata": {
+    "version": "1.0.0",
+    "created": "2024-01-24T10:00:00Z",
+    "last_updated": "2025-09-24T19:13:44.060Z"
+  }
+}

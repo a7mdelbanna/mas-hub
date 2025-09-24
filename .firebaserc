@@ -1,0 +1,8 @@
+{
+  "projects": {
+    "default": "mashub-a0725",
+    "dev": "mashub-a0725",
+    "staging": "mashub-a0725",
+    "production": "mashub-a0725"
+  }
+}
