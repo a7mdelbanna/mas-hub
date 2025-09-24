@@ -25,3 +25,7 @@ setupListeners(store.dispatch);
 
 export type RootState = ReturnType<typeof store.getState>;
 export type AppDispatch = typeof store.dispatch;
+
+// Re-export slice exports for convenience
+export * from './slices/authSlice';
+export * from './slices/uiSlice';

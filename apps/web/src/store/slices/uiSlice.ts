@@ -1,5 +1,5 @@
-import { createSlice, PayloadAction } from '@reduxjs/toolkit';
-import { Language, PortalType } from '../../types/models';
+import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
+import type { Language, PortalType } from '../../types/models';
 
 interface UIState {
   theme: 'light' | 'dark' | 'system';
@@ -87,3 +87,5 @@ export const {
   removeNotification,
   clearNotifications,
 } = uiSlice.actions;
+
+export default uiSlice.reducer;

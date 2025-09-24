@@ -1,8 +1,8 @@
 import { useSelector } from 'react-redux';
-import { RootState } from '../../../store';
+import type { RootState } from '../../../store';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../../../lib/firebase/config';
-import { User } from '../../../types/models';
+import type { User } from '../../../types/models';
 
 export function useAuth() {
   const authState = useSelector((state: RootState) => state.auth);
@@ -52,6 +52,9 @@ export function useAuth() {
     canAccessPortal,
   };
 }
+
+// Default export for the hook
+export default useAuth;
 
 // Utility functions for Firebase operations
 export const useAuthUser = {

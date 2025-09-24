@@ -1,5 +1,5 @@
-import { createSlice, PayloadAction } from '@reduxjs/toolkit';
-import { User } from '../../types/models';
+import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
+import type { User } from '../../types/models';
 
 interface AuthState {
   user: User | null;
@@ -60,3 +60,5 @@ export const {
   setRoles,
   logout,
 } = authSlice.actions;
+
+export default authSlice.reducer;

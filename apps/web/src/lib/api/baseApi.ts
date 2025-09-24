@@ -1,4 +1,4 @@
-import { createApi, fetchBaseQuery, BaseQueryFn } from '@reduxjs/toolkit/query/react';
+import { createApi, fetchBaseQuery, type BaseQueryFn } from '@reduxjs/toolkit/query/react';
 import { auth } from '../firebase/config';
 
 const baseQuery = fetchBaseQuery({

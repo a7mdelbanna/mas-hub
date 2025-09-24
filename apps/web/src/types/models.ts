@@ -6,127 +6,144 @@ export type Currency = 'USD' | 'EGP' | 'EUR' | 'GBP' | 'AED';
 export type Language = 'en' | 'ar' | 'ru';
 export type PortalType = 'client' | 'employee' | 'candidate';
 
-export enum ProjectStatus {
-  DRAFT = 'draft',
-  PLANNING = 'planning',
-  IN_PROGRESS = 'in_progress',
-  ON_HOLD = 'on_hold',
-  COMPLETED = 'completed',
-  CANCELLED = 'cancelled'
-}
+export const ProjectStatus = {
+  DRAFT: 'draft',
+  PLANNING: 'planning',
+  IN_PROGRESS: 'in_progress',
+  ON_HOLD: 'on_hold',
+  COMPLETED: 'completed',
+  CANCELLED: 'cancelled'
+} as const
 
-export enum TaskStatus {
-  TODO = 'todo',
-  IN_PROGRESS = 'in_progress',
-  REVIEW = 'review',
-  BLOCKED = 'blocked',
-  COMPLETED = 'completed'
-}
+export const TaskStatus = {
+  TODO: 'todo',
+  IN_PROGRESS: 'in_progress',
+  REVIEW: 'review',
+  BLOCKED: 'blocked',
+  COMPLETED: 'completed'
+} as const
 
-export enum InvoiceStatus {
-  DRAFT = 'draft',
-  SENT = 'sent',
-  VIEWED = 'viewed',
-  PARTIALLY_PAID = 'partially_paid',
-  PAID = 'paid',
-  OVERDUE = 'overdue',
-  CANCELLED = 'cancelled'
-}
+export const InvoiceStatus = {
+  DRAFT: 'draft',
+  SENT: 'sent',
+  VIEWED: 'viewed',
+  PARTIALLY_PAID: 'partially_paid',
+  PAID: 'paid',
+  OVERDUE: 'overdue',
+  CANCELLED: 'cancelled'
+} as const
 
-export enum PaymentStatus {
-  PENDING = 'pending',
-  PROCESSING = 'processing',
-  COMPLETED = 'completed',
-  FAILED = 'failed',
-  REFUNDED = 'refunded'
-}
+export const PaymentStatus = {
+  PENDING: 'pending',
+  PROCESSING: 'processing',
+  COMPLETED: 'completed',
+  FAILED: 'failed',
+  REFUNDED: 'refunded'
+} as const
 
-export enum PaymentMethod {
-  STRIPE = 'stripe',
-  PAYMOB = 'paymob',
-  INSTAPAY = 'instapay',
-  VODAFONE_CASH = 'vodafone_cash',
-  BANK_TRANSFER = 'bank_transfer',
-  CASH = 'cash'
-}
+export const PaymentMethod = {
+  STRIPE: 'stripe',
+  PAYMOB: 'paymob',
+  INSTAPAY: 'instapay',
+  VODAFONE_CASH: 'vodafone_cash',
+  BANK_TRANSFER: 'bank_transfer',
+  CASH: 'cash'
+} as const
 
-export enum TicketStatus {
-  NEW = 'new',
-  ASSIGNED = 'assigned',
-  IN_PROGRESS = 'in_progress',
-  WAITING_CUSTOMER = 'waiting_customer',
-  RESOLVED = 'resolved',
-  CLOSED = 'closed'
-}
+export const TicketStatus = {
+  NEW: 'new',
+  ASSIGNED: 'assigned',
+  IN_PROGRESS: 'in_progress',
+  WAITING_CUSTOMER: 'waiting_customer',
+  RESOLVED: 'resolved',
+  CLOSED: 'closed'
+} as const
 
-export enum TicketPriority {
-  LOW = 'low',
-  MEDIUM = 'medium',
-  HIGH = 'high',
-  CRITICAL = 'critical'
-}
+export const TicketPriority = {
+  LOW: 'low',
+  MEDIUM: 'medium',
+  HIGH: 'high',
+  CRITICAL: 'critical'
+} as const
 
-export enum CandidateStage {
-  APPLIED = 'applied',
-  SHORTLIST = 'shortlist',
-  INVITED = 'invited',
-  TRAINING = 'training',
-  INTERVIEW = 'interview',
-  OFFER = 'offer',
-  HIRED = 'hired',
-  REJECTED = 'rejected'
-}
+export const CandidateStage = {
+  APPLIED: 'applied',
+  SHORTLIST: 'shortlist',
+  INVITED: 'invited',
+  TRAINING: 'training',
+  INTERVIEW: 'interview',
+  OFFER: 'offer',
+  HIRED: 'hired',
+  REJECTED: 'rejected'
+} as const
 
-export enum OpportunityStage {
-  LEAD = 'lead',
-  QUALIFIED = 'qualified',
-  PROPOSAL = 'proposal',
-  NEGOTIATION = 'negotiation',
-  WON = 'won',
-  LOST = 'lost'
-}
+export const OpportunityStage = {
+  LEAD: 'lead',
+  QUALIFIED: 'qualified',
+  PROPOSAL: 'proposal',
+  NEGOTIATION: 'negotiation',
+  WON: 'won',
+  LOST: 'lost'
+} as const
 
-export enum TransactionType {
-  INCOME = 'income',
-  EXPENSE = 'expense',
-  TRANSFER = 'transfer'
-}
+export const TransactionType = {
+  INCOME: 'income',
+  EXPENSE: 'expense',
+  TRANSFER: 'transfer'
+} as const
 
-export enum TimesheetStatus {
-  DRAFT = 'draft',
-  SUBMITTED = 'submitted',
-  APPROVED = 'approved',
-  REJECTED = 'rejected'
-}
+export const TimesheetStatus = {
+  DRAFT: 'draft',
+  SUBMITTED: 'submitted',
+  APPROVED: 'approved',
+  REJECTED: 'rejected'
+} as const
 
-export enum ContractStatus {
-  DRAFT = 'draft',
-  ACTIVE = 'active',
-  EXPIRED = 'expired',
-  RENEWED = 'renewed',
-  TERMINATED = 'terminated'
-}
+export const ContractStatus = {
+  DRAFT: 'draft',
+  ACTIVE: 'active',
+  EXPIRED: 'expired',
+  RENEWED: 'renewed',
+  TERMINATED: 'terminated'
+} as const
 
-export enum AssetStatus {
-  ACTIVE = 'active',
-  MAINTENANCE = 'maintenance',
-  RETIRED = 'retired',
-  DISPOSED = 'disposed'
-}
+export const AssetStatus = {
+  ACTIVE: 'active',
+  MAINTENANCE: 'maintenance',
+  RETIRED: 'retired',
+  DISPOSED: 'disposed'
+} as const
 
-export enum CourseAudience {
-  EMPLOYEE = 'employee',
-  CANDIDATE = 'candidate',
-  CLIENT = 'client',
-  MIXED = 'mixed'
-}
+export const CourseAudience = {
+  EMPLOYEE: 'employee',
+  CANDIDATE: 'candidate',
+  CLIENT: 'client',
+  MIXED: 'mixed'
+} as const
 
-export enum AssignmentStatus {
-  NOT_STARTED = 'not_started',
-  IN_PROGRESS = 'in_progress',
-  COMPLETED = 'completed',
-  EXPIRED = 'expired'
-}
+export const AssignmentStatus = {
+  NOT_STARTED: 'not_started',
+  IN_PROGRESS: 'in_progress',
+  COMPLETED: 'completed',
+  EXPIRED: 'expired'
+} as const
+
+// Type aliases for const objects
+export type ProjectStatus = typeof ProjectStatus[keyof typeof ProjectStatus];
+export type TaskStatus = typeof TaskStatus[keyof typeof TaskStatus];
+export type InvoiceStatus = typeof InvoiceStatus[keyof typeof InvoiceStatus];
+export type PaymentStatus = typeof PaymentStatus[keyof typeof PaymentStatus];
+export type PaymentMethod = typeof PaymentMethod[keyof typeof PaymentMethod];
+export type TicketStatus = typeof TicketStatus[keyof typeof TicketStatus];
+export type TicketPriority = typeof TicketPriority[keyof typeof TicketPriority];
+export type CandidateStage = typeof CandidateStage[keyof typeof CandidateStage];
+export type OpportunityStage = typeof OpportunityStage[keyof typeof OpportunityStage];
+export type TransactionType = typeof TransactionType[keyof typeof TransactionType];
+export type TimesheetStatus = typeof TimesheetStatus[keyof typeof TimesheetStatus];
+export type ContractStatus = typeof ContractStatus[keyof typeof ContractStatus];
+export type AssetStatus = typeof AssetStatus[keyof typeof AssetStatus];
+export type CourseAudience = typeof CourseAudience[keyof typeof CourseAudience];
+export type AssignmentStatus = typeof AssignmentStatus[keyof typeof AssignmentStatus];
 
 // ============================================
 // Base Interfaces
