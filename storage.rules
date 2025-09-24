@@ -1,0 +1,453 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    // ============================================
+    // Helper Functions
+    // ============================================
+
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function hasRole(role) {
+      return isAuthenticated() &&
+        request.auth.token.role != null &&
+        request.auth.token.role == role;
+    }
+
+    function hasAnyRole(roles) {
+      return isAuthenticated() &&
+        request.auth.token.role != null &&
+        request.auth.token.role in roles;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isInPortal(portalType) {
+      return isAuthenticated() &&
+        request.auth.token.portal != null &&
+        request.auth.token.portal == portalType;
+    }
+
+    function isClientPortalUser(accountId) {
+      return isAuthenticated() &&
+        request.auth.token.portal == 'client' &&
+        request.auth.token.accountId == accountId;
+    }
+
+    function isEmployeePortalUser() {
+      return isAuthenticated() &&
+        request.auth.token.portal == 'employee' &&
+        request.auth.token.employeeId != null;
+    }
+
+    function isCandidatePortalUser() {
+      return isAuthenticated() &&
+        request.auth.token.portal == 'candidate' &&
+        request.auth.token.candidateId != null;
+    }
+
+    // File validation functions
+    function isValidFileSize(maxSizeMB) {
+      return request.resource.size <= maxSizeMB * 1024 * 1024;
+    }
+
+    function isValidImageType() {
+      return request.resource.contentType.matches('image/.*');
+    }
+
+    function isValidDocumentType() {
+      return request.resource.contentType.matches('application/pdf') ||
+             request.resource.contentType.matches('application/msword') ||
+             request.resource.contentType.matches('application/vnd.openxmlformats-officedocument.*') ||
+             request.resource.contentType.matches('text/plain') ||
+             request.resource.contentType.matches('application/vnd.ms-excel');
+    }
+
+    function isValidVideoType() {
+      return request.resource.contentType.matches('video/.*');
+    }
+
+    function isValidAudioType() {
+      return request.resource.contentType.matches('audio/.*');
+    }
+
+    function isValidArchiveType() {
+      return request.resource.contentType.matches('application/zip') ||
+             request.resource.contentType.matches('application/x-zip-compressed') ||
+             request.resource.contentType.matches('application/x-rar-compressed') ||
+             request.resource.contentType.matches('application/x-tar') ||
+             request.resource.contentType.matches('application/gzip');
+    }
+
+    function hasValidMetadata() {
+      return request.resource.metadata.uploadedBy != null &&
+             request.resource.metadata.uploadedAt != null;
+    }
+
+    // ============================================
+    // User Profile Images
+    // ============================================
+
+    match /users/{userId}/profile/{fileName} {
+      allow read: if isAuthenticated();
+      allow write: if isOwner(userId) &&
+        isValidImageType() &&
+        isValidFileSize(5) && // 5MB max
+        fileName.matches('.*\\.(jpg|jpeg|png|gif|webp)$');
+    }
+
+    // ============================================
+    // Project Files
+    // ============================================
+
+    match /projects/{projectId}/{allPaths=**} {
+      allow read: if isAuthenticated() && (
+        hasAnyRole(['admin', 'super_admin']) ||
+        resource.metadata.projectMembers.hasAny([request.auth.uid]) ||
+        (isClientPortalUser(resource.metadata.accountId) &&
+         resource.metadata.clientVisible == 'true')
+      );
+
+      allow create: if isAuthenticated() && (
+        hasAnyRole(['admin', 'super_admin', 'project_manager']) ||
+        request.resource.metadata.projectMembers.hasAny([request.auth.uid])
+      ) &&
+        isValidFileSize(100) && // 100MB max for project files
+        (isValidDocumentType() || isValidImageType() || isValidArchiveType()) &&
+        hasValidMetadata();
+
+      allow update: if isAuthenticated() && (
+        hasAnyRole(['admin', 'super_admin']) ||
+        resource.metadata.uploadedBy == request.auth.uid ||
+        resource.metadata.projectManager == request.auth.uid
+      );
+
+      allow delete: if hasAnyRole(['admin', 'super_admin']) ||
+        resource.metadata.projectManager == request.auth.uid;
+    }
+
+    // ============================================
+    // Client Portal Files
+    // ============================================
+
+    match /clients/{accountId}/{allPaths=**} {
+      // Separate rules for different subdirectories
+      match /contracts/{fileName} {
+        allow read: if isClientPortalUser(accountId) ||
+          hasAnyRole(['admin', 'sales_manager', 'finance_manager']);
+
+        allow write: if hasAnyRole(['admin', 'sales_manager']) &&
+          isValidDocumentType() &&
+          isValidFileSize(20); // 20MB max for contracts
+      }
+
+      match /invoices/{fileName} {
+        allow read: if isClientPortalUser(accountId) ||
+          hasAnyRole(['admin', 'finance_manager', 'finance_user']);
+
+        allow write: if hasAnyRole(['admin', 'finance_manager']) &&
+          isValidDocumentType() &&
+          isValidFileSize(10); // 10MB max for invoices
+      }
+
+      match /documents/{fileName} {
+        allow read: if isClientPortalUser(accountId) ||
+          hasAnyRole(['admin', 'sales_manager', 'support_agent']);
+
+        allow write: if (isClientPortalUser(accountId) ||
+          hasAnyRole(['admin', 'sales_manager'])) &&
+          (isValidDocumentType() || isValidImageType()) &&
+          isValidFileSize(50); // 50MB max for general documents
+      }
+
+      match /training/{fileName} {
+        allow read: if isClientPortalUser(accountId) ||
+          hasAnyRole(['admin', 'training_manager']);
+
+        allow write: if hasAnyRole(['admin', 'training_manager']) &&
+          (isValidDocumentType() || isValidVideoType()) &&
+          isValidFileSize(500); // 500MB max for training videos
+      }
+    }
+
+    // ============================================
+    // Employee Portal Files
+    // ============================================
+
+    match /employees/{employeeId}/{allPaths=**} {
+      match /documents/{fileName} {
+        allow read: if isOwner(employeeId) ||
+          hasAnyRole(['admin', 'hr_manager']);
+
+        allow write: if (isOwner(employeeId) ||
+          hasAnyRole(['admin', 'hr_manager'])) &&
+          isValidDocumentType() &&
+          isValidFileSize(20); // 20MB max
+      }
+
+      match /payroll/{fileName} {
+        allow read: if isOwner(employeeId) ||
+          hasAnyRole(['admin', 'hr_manager', 'finance_manager']);
+
+        allow write: if hasAnyRole(['hr_manager', 'finance_manager']) &&
+          isValidDocumentType() &&
+          isValidFileSize(5); // 5MB max for payroll docs
+      }
+
+      match /training/{fileName} {
+        allow read: if isOwner(employeeId) ||
+          hasAnyRole(['admin', 'hr_manager', 'training_manager']);
+
+        allow write: if hasAnyRole(['training_manager', 'hr_manager']) &&
+          (isValidDocumentType() || isValidVideoType()) &&
+          isValidFileSize(200); // 200MB max
+      }
+    }
+
+    // ============================================
+    // Candidate Portal Files
+    // ============================================
+
+    match /candidates/{candidateId}/{allPaths=**} {
+      match /cv/{fileName} {
+        allow read: if (isCandidatePortalUser() &&
+          request.auth.token.candidateId == candidateId) ||
+          hasAnyRole(['admin', 'hr_manager', 'hr_user']);
+
+        allow write: if (isCandidatePortalUser() &&
+          request.auth.token.candidateId == candidateId) &&
+          isValidDocumentType() &&
+          isValidFileSize(10) && // 10MB max for CV
+          fileName.matches('.*\\.(pdf|doc|docx)$');
+      }
+
+      match /portfolio/{fileName} {
+        allow read: if (isCandidatePortalUser() &&
+          request.auth.token.candidateId == candidateId) ||
+          hasAnyRole(['admin', 'hr_manager', 'hr_user']);
+
+        allow write: if (isCandidatePortalUser() &&
+          request.auth.token.candidateId == candidateId) &&
+          (isValidDocumentType() || isValidImageType() || isValidArchiveType()) &&
+          isValidFileSize(50); // 50MB max for portfolio
+      }
+
+      match /assessments/{fileName} {
+        allow read: if (isCandidatePortalUser() &&
+          request.auth.token.candidateId == candidateId) ||
+          hasAnyRole(['admin', 'hr_manager']);
+
+        allow write: if hasAnyRole(['hr_manager', 'training_manager']) &&
+          isValidDocumentType() &&
+          isValidFileSize(20); // 20MB max
+      }
+    }
+
+    // ============================================
+    // Support Tickets & Documentation
+    // ============================================
+
+    match /support/{ticketId}/{allPaths=**} {
+      allow read: if isAuthenticated() && (
+        hasAnyRole(['admin', 'support_agent', 'support_manager']) ||
+        (isClientPortalUser(resource.metadata.accountId) &&
+         resource.metadata.isPublic == 'true')
+      );
+
+      allow write: if (
+        hasAnyRole(['admin', 'support_agent', 'support_manager']) ||
+        (isClientPortalUser(request.resource.metadata.accountId) &&
+         request.resource.metadata.isPublic == 'true')
+      ) &&
+        (isValidDocumentType() || isValidImageType()) &&
+        isValidFileSize(25); // 25MB max for support files
+    }
+
+    match /knowledge-base/{articleId}/{allPaths=**} {
+      allow read: if isAuthenticated();
+
+      allow write: if hasAnyRole(['admin', 'support_manager']) &&
+        (isValidDocumentType() || isValidImageType() || isValidVideoType()) &&
+        isValidFileSize(100); // 100MB max for KB articles
+    }
+
+    // ============================================
+    // Training & LMS Content
+    // ============================================
+
+    match /courses/{courseId}/{allPaths=**} {
+      allow read: if isAuthenticated() && (
+        hasAnyRole(['admin', 'training_manager', 'hr_manager']) ||
+        (resource.metadata.audience == 'employee' && isEmployeePortalUser()) ||
+        (resource.metadata.audience == 'candidate' && isCandidatePortalUser()) ||
+        (resource.metadata.audience == 'client' && isInPortal('client')) ||
+        resource.metadata.audience == 'mixed'
+      );
+
+      allow write: if hasAnyRole(['admin', 'training_manager']) &&
+        (isValidDocumentType() || isValidVideoType() || isValidAudioType()) &&
+        isValidFileSize(1000); // 1GB max for training content
+    }
+
+    match /certificates/{certificateId}/{fileName} {
+      allow read: if isAuthenticated() && (
+        resource.metadata.userId == request.auth.uid ||
+        hasAnyRole(['admin', 'training_manager', 'hr_manager'])
+      );
+
+      allow write: if hasRole('system') && // Only system can generate certificates
+        isValidDocumentType() &&
+        isValidFileSize(5); // 5MB max for certificates
+    }
+
+    // ============================================
+    // Finance & Accounting Files
+    // ============================================
+
+    match /finance/{year}/{month}/{allPaths=**} {
+      allow read: if hasAnyRole(['admin', 'finance_manager', 'finance_user']);
+
+      allow write: if hasAnyRole(['finance_manager', 'admin']) &&
+        isValidDocumentType() &&
+        isValidFileSize(50) && // 50MB max
+        hasValidMetadata();
+
+      allow delete: if hasRole('admin'); // Only admin can delete financial records
+    }
+
+    match /receipts/{paymentId}/{fileName} {
+      allow read: if isAuthenticated() && (
+        hasAnyRole(['admin', 'finance_manager', 'finance_user']) ||
+        (isClientPortalUser(resource.metadata.accountId))
+      );
+
+      allow write: if hasRole('system') && // Only system generates receipts
+        isValidDocumentType() &&
+        isValidFileSize(2); // 2MB max for receipts
+    }
+
+    // ============================================
+    // Products & Services Documentation
+    // ============================================
+
+    match /products/{productId}/{allPaths=**} {
+      allow read: if isAuthenticated();
+
+      allow write: if hasAnyRole(['admin', 'product_manager', 'inventory_manager']) &&
+        (isValidDocumentType() || isValidImageType()) &&
+        isValidFileSize(50); // 50MB max
+    }
+
+    match /services/{serviceId}/{allPaths=**} {
+      allow read: if isAuthenticated();
+
+      allow write: if hasAnyRole(['admin', 'service_manager']) &&
+        (isValidDocumentType() || isValidImageType()) &&
+        isValidFileSize(25); // 25MB max
+    }
+
+    // ============================================
+    // Company Documents & Templates
+    // ============================================
+
+    match /company/{allPaths=**} {
+      match /policies/{fileName} {
+        allow read: if isAuthenticated();
+
+        allow write: if hasAnyRole(['admin', 'hr_manager']) &&
+          isValidDocumentType() &&
+          isValidFileSize(20); // 20MB max
+      }
+
+      match /templates/{fileName} {
+        allow read: if isAuthenticated() &&
+          hasAnyRole(['admin', 'department_manager', 'project_manager']);
+
+        allow write: if hasRole('admin') &&
+          isValidDocumentType() &&
+          isValidFileSize(10); // 10MB max
+      }
+
+      match /branding/{fileName} {
+        allow read: if isAuthenticated();
+
+        allow write: if hasAnyRole(['admin', 'marketing_manager']) &&
+          (isValidImageType() || isValidDocumentType()) &&
+          isValidFileSize(50); // 50MB max
+      }
+    }
+
+    // ============================================
+    // Temporary Upload Area
+    // ============================================
+
+    match /temp/{userId}/{fileName} {
+      allow read: if isOwner(userId);
+
+      allow create: if isOwner(userId) &&
+        isValidFileSize(100) && // 100MB max for temp files
+        request.resource.metadata.expiresAt != null; // Must have expiration
+
+      allow update: if false; // No updates to temp files
+
+      allow delete: if isOwner(userId) ||
+        hasRole('system'); // System can clean up expired files
+    }
+
+    // ============================================
+    // System Files (Backups, Exports, etc.)
+    // ============================================
+
+    match /system/{allPaths=**} {
+      allow read: if hasRole('super_admin');
+      allow write: if hasRole('system');
+    }
+
+    match /backups/{date}/{fileName} {
+      allow read: if hasRole('super_admin');
+      allow write: if hasRole('system');
+      allow delete: if false; // Never delete backups manually
+    }
+
+    match /exports/{exportId}/{fileName} {
+      allow read: if isAuthenticated() && (
+        resource.metadata.requestedBy == request.auth.uid ||
+        hasRole('admin')
+      );
+
+      allow write: if hasRole('system') &&
+        isValidFileSize(500); // 500MB max for exports
+
+      allow delete: if hasRole('admin') ||
+        (resource.metadata.requestedBy == request.auth.uid &&
+         resource.metadata.expiresAt < request.time);
+    }
+
+    // ============================================
+    // Audit & Compliance Files
+    // ============================================
+
+    match /audit/{year}/{fileName} {
+      allow read: if hasAnyRole(['admin', 'super_admin', 'compliance_officer']);
+
+      allow write: if hasRole('system') && // Only system writes audit files
+        isValidDocumentType() &&
+        isValidFileSize(100); // 100MB max
+
+      allow delete: if false; // Audit files cannot be deleted
+    }
+
+    // ============================================
+    // Default Deny Rule
+    // ============================================
+
+    // Deny all other paths not explicitly defined
+    match /{document=**} {
+      allow read: if false;
+      allow write: if false;
+    }
+  }
+}

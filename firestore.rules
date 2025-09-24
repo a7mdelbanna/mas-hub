@@ -2,7 +2,7 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     // ============================================
-    // Helper Functions
+    // Core Helper Functions
     // ============================================
 
     function isAuthenticated() {
@@ -11,74 +11,164 @@ service cloud.firestore {
 
     function hasRole(role) {
       return isAuthenticated() &&
-        request.auth.token.roles != null &&
-        request.auth.token.roles[role] == true;
+        request.auth.token.role != null &&
+        request.auth.token.role == role;
+    }
+
+    function hasAnyRole(roles) {
+      return isAuthenticated() &&
+        request.auth.token.role != null &&
+        request.auth.token.role in roles;
     }
 
     function hasDepartment(deptId) {
       return isAuthenticated() &&
-        request.auth.token.departmentId == deptId;
+        request.auth.token.department != null &&
+        request.auth.token.department == deptId;
     }
 
     function isOwner(userId) {
       return isAuthenticated() && request.auth.uid == userId;
     }
 
-    function hasPermission(resource, action) {
+    function hasCustomClaim(claim) {
       return isAuthenticated() &&
-        request.auth.token.permissions != null &&
-        request.auth.token.permissions[resource + ':' + action] == true;
+        request.auth.token[claim] != null &&
+        request.auth.token[claim] == true;
     }
 
-    function canAccessProject(projectId) {
-      return isAuthenticated() && (
-        hasRole('admin') ||
-        hasPermission('projects', 'read') ||
-        exists(/databases/$(database)/documents/projects/$(projectId)/members/$(request.auth.uid))
-      );
-    }
-
-    function canAccessClient(accountId) {
-      return isAuthenticated() && (
-        hasRole('admin') ||
-        hasPermission('accounts', 'read') ||
-        get(/databases/$(database)/documents/accounts/$(accountId)).data.assignedTo == request.auth.uid
-      );
+    // Portal-specific functions
+    function isInPortal(portalType) {
+      return isAuthenticated() &&
+        request.auth.token.portal != null &&
+        request.auth.token.portal == portalType;
     }
 
     function isClientPortalUser(accountId) {
       return isAuthenticated() &&
-        request.auth.token.portalType == 'client' &&
+        request.auth.token.portal == 'client' &&
         request.auth.token.accountId == accountId;
     }
 
     function isEmployeePortalUser() {
       return isAuthenticated() &&
-        request.auth.token.portalType == 'employee';
+        request.auth.token.portal == 'employee' &&
+        request.auth.token.employeeId != null;
     }
 
     function isCandidatePortalUser(candidateId) {
       return isAuthenticated() &&
-        request.auth.token.portalType == 'candidate' &&
+        request.auth.token.portal == 'candidate' &&
         request.auth.token.candidateId == candidateId;
     }
 
+    // Department and hierarchy functions
+    function isDepartmentManager(deptId) {
+      return isAuthenticated() &&
+        request.auth.token.role == 'department_manager' &&
+        request.auth.token.department == deptId;
+    }
+
+    function canManageDepartment(deptId) {
+      return hasRole('admin') ||
+        hasRole('super_admin') ||
+        isDepartmentManager(deptId);
+    }
+
+    // Project access functions
+    function isProjectMember(projectId) {
+      return exists(/databases/$(database)/documents/projects/$(projectId)/members/$(request.auth.uid));
+    }
+
+    function isProjectManager(projectId) {
+      return get(/databases/$(database)/documents/projects/$(projectId)).data.managerId == request.auth.uid;
+    }
+
+    function canAccessProject(projectId) {
+      return hasAnyRole(['admin', 'super_admin']) ||
+        isProjectManager(projectId) ||
+        isProjectMember(projectId);
+    }
+
+    // Client/Account access functions
+    function isAccountOwner(accountId) {
+      return get(/databases/$(database)/documents/accounts/$(accountId)).data.assignedTo == request.auth.uid;
+    }
+
+    function canAccessAccount(accountId) {
+      return hasAnyRole(['admin', 'super_admin', 'sales_manager']) ||
+        isAccountOwner(accountId) ||
+        isClientPortalUser(accountId);
+    }
+
+    // Financial operation guards
+    function canApproveFinancial(amount) {
+      return (amount < 10000 && hasAnyRole(['finance_manager', 'admin'])) ||
+        (amount >= 10000 && hasRole('admin')) ||
+        hasRole('super_admin');
+    }
+
+    function isFinanceOperation() {
+      return false; // Force all financial writes through Cloud Functions
+    }
+
+    // Data validation functions
+    function hasRequiredFields(fields) {
+      return request.resource.data.keys().hasAll(fields);
+    }
+
+    function isValidStatus(status, allowedStatuses) {
+      return status in allowedStatuses;
+    }
+
+    function isValidDate(date) {
+      return date is timestamp;
+    }
+
+    function isValidEmail(email) {
+      return email.matches('^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$');
+    }
+
+    // Audit trail function
+    function hasAuditFields() {
+      return request.resource.data.createdBy == request.auth.uid &&
+        request.resource.data.createdAt == request.time &&
+        request.resource.data.updatedBy == request.auth.uid &&
+        request.resource.data.updatedAt == request.time;
+    }
+
+    // Business hours and SLA functions
+    function isBusinessHours() {
+      let hour = request.time.toMillis().hour();
+      return hour >= 9 && hour < 18; // 9 AM to 6 PM
+    }
+
+    function canBypassSLA() {
+      return hasAnyRole(['support_manager', 'admin', 'super_admin']);
+    }
+
     // ============================================
-    // Organization & Settings
+    // Organization & Settings (High Security)
     // ============================================
 
     match /organizations/{orgId} {
       allow read: if isAuthenticated();
-      allow write: if hasRole('super_admin');
+      allow create: if hasRole('super_admin');
+      allow update: if hasRole('super_admin') &&
+        !request.resource.data.diff(resource.data).affectedKeys().hasAny(['id', 'createdAt', 'createdBy']);
+      allow delete: if false; // Never allow deletion
 
       match /settings/{settingId} {
         allow read: if isAuthenticated();
-        allow write: if hasRole('admin');
+        allow write: if hasAnyRole(['admin', 'super_admin']);
       }
 
       match /customFields/{fieldId} {
         allow read: if isAuthenticated();
-        allow write: if hasRole('admin');
+        allow create: if hasAnyRole(['admin', 'super_admin']) &&
+          hasRequiredFields(['entityType', 'fieldName', 'fieldType', 'label']);
+        allow update: if hasAnyRole(['admin', 'super_admin']);
+        allow delete: if hasRole('super_admin');
       }
     }
 
@@ -89,32 +179,42 @@ service cloud.firestore {
     match /users/{userId} {
       allow read: if isAuthenticated() && (
         isOwner(userId) ||
-        hasPermission('users', 'read') ||
-        hasRole('admin')
+        hasAnyRole(['hr_manager', 'admin', 'super_admin']) ||
+        (hasRole('department_manager') &&
+          resource.data.departmentId == request.auth.token.department)
       );
-      allow create: if hasPermission('users', 'create');
-      allow update: if isOwner(userId) || hasPermission('users', 'update');
-      allow delete: if hasRole('admin');
 
-      match /roles/{roleId} {
-        allow read: if isOwner(userId) || hasRole('admin');
-        allow write: if hasRole('admin');
-      }
+      allow create: if hasAnyRole(['hr_manager', 'admin', 'super_admin']) &&
+        hasRequiredFields(['email', 'name', 'active']) &&
+        isValidEmail(request.resource.data.email);
+
+      allow update: if (isOwner(userId) &&
+        !request.resource.data.diff(resource.data).affectedKeys()
+          .hasAny(['role', 'department', 'active', 'portalAccess'])) ||
+        hasAnyRole(['hr_manager', 'admin', 'super_admin']);
+
+      allow delete: if false; // Soft delete only
 
       match /notifications/{notifId} {
         allow read: if isOwner(userId);
-        allow write: if isOwner(userId) || hasRole('system');
+        allow create: if hasRole('system');
+        allow update: if isOwner(userId) &&
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['read', 'readAt']);
+        allow delete: if isOwner(userId) && resource.data.read == true;
       }
     }
 
     match /departments/{deptId} {
       allow read: if isAuthenticated();
-      allow write: if hasRole('admin');
+      allow create: if hasAnyRole(['hr_manager', 'admin', 'super_admin']) &&
+        hasRequiredFields(['name', 'code', 'active']);
+      allow update: if canManageDepartment(deptId);
+      allow delete: if hasRole('super_admin');
 
-      match /members/{userId} {
+      match /members/{memberId} {
         allow read: if isAuthenticated();
-        allow write: if hasRole('admin') ||
-          (hasRole('department_manager') && hasDepartment(deptId));
+        allow write: if canManageDepartment(deptId) ||
+          hasAnyRole(['hr_manager', 'admin', 'super_admin']);
       }
     }
 
@@ -124,156 +224,305 @@ service cloud.firestore {
     }
 
     // ============================================
-    // Projects & Delivery
+    // Projects & Tasks (Department Scoped)
     // ============================================
 
     match /projects/{projectId} {
       allow read: if canAccessProject(projectId) ||
         isClientPortalUser(resource.data.accountId);
-      allow create: if hasPermission('projects', 'create');
-      allow update: if hasPermission('projects', 'update') &&
-        (resource.data.managerId == request.auth.uid || hasRole('admin'));
-      allow delete: if hasRole('admin');
+
+      allow create: if hasAnyRole(['project_manager', 'department_manager', 'admin']) &&
+        hasRequiredFields(['name', 'accountId', 'startDate', 'dueDate', 'status']) &&
+        request.resource.data.managerId == request.auth.uid;
+
+      allow update: if canAccessProject(projectId) &&
+        (isProjectManager(projectId) || hasAnyRole(['admin', 'super_admin'])) &&
+        (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['estimateBudget', 'actualBudget']) ||
+          canApproveFinancial(request.resource.data.estimateBudget));
+
+      allow delete: if false; // Soft delete only
 
       match /phases/{phaseId} {
-        allow read: if canAccessProject(projectId);
-        allow write: if hasPermission('projects', 'update') &&
-          (get(/databases/$(database)/documents/projects/$(projectId)).data.managerId == request.auth.uid || hasRole('admin'));
+        allow read: if canAccessProject(projectId) ||
+          isClientPortalUser(get(/databases/$(database)/documents/projects/$(projectId)).data.accountId);
+        allow write: if canAccessProject(projectId) && isProjectManager(projectId);
       }
 
       match /tasks/{taskId} {
-        allow read: if canAccessProject(projectId);
-        allow create: if hasPermission('tasks', 'create') && canAccessProject(projectId);
-        allow update: if (resource.data.assigneeId == request.auth.uid ||
-          hasPermission('tasks', 'update')) && canAccessProject(projectId);
-        allow delete: if hasRole('admin');
+        allow read: if canAccessProject(projectId) ||
+          (isClientPortalUser(get(/databases/$(database)/documents/projects/$(projectId)).data.accountId) &&
+            resource.data.clientVisible == true);
+
+        allow create: if canAccessProject(projectId) &&
+          hasRequiredFields(['title', 'status']);
+
+        allow update: if canAccessProject(projectId) &&
+          (resource.data.assigneeId == request.auth.uid ||
+            isProjectManager(projectId) ||
+            hasAnyRole(['admin', 'super_admin']));
+
+        allow delete: if false; // Soft delete only
       }
 
-      match /members/{userId} {
+      match /members/{memberId} {
         allow read: if canAccessProject(projectId);
-        allow write: if hasPermission('projects', 'update') &&
-          (get(/databases/$(database)/documents/projects/$(projectId)).data.managerId == request.auth.uid || hasRole('admin'));
+        allow write: if isProjectManager(projectId) ||
+          hasAnyRole(['admin', 'super_admin']);
+      }
+
+      match /documents/{docId} {
+        allow read: if canAccessProject(projectId) ||
+          (isClientPortalUser(get(/databases/$(database)/documents/projects/$(projectId)).data.accountId) &&
+            resource.data.clientVisible == true);
+        allow write: if canAccessProject(projectId);
       }
     }
 
     match /timesheets/{timesheetId} {
       allow read: if isOwner(resource.data.userId) ||
-        hasPermission('timesheets', 'read') ||
-        hasRole('department_manager');
-      allow create: if isOwner(request.resource.data.userId);
-      allow update: if isOwner(resource.data.userId) &&
-        resource.data.status == 'draft' ||
-        (hasRole('department_manager') && resource.data.status == 'submitted');
-      allow delete: if false;
+        hasAnyRole(['hr_manager', 'finance_manager', 'admin']) ||
+        (hasRole('department_manager') &&
+          get(/databases/$(database)/documents/users/$(resource.data.userId)).data.departmentId == request.auth.token.department) ||
+        (hasRole('project_manager') &&
+          isProjectManager(resource.data.projectId));
+
+      allow create: if isOwner(request.resource.data.userId) &&
+        request.resource.data.status == 'draft' &&
+        hasRequiredFields(['date', 'hours', 'projectId']);
+
+      allow update: if (isOwner(resource.data.userId) &&
+          resource.data.status in ['draft', 'rejected']) ||
+        (hasRole('department_manager') &&
+          resource.data.status == 'submitted' &&
+          request.resource.data.status in ['approved', 'rejected']) ||
+        hasAnyRole(['hr_manager', 'admin']);
+
+      allow delete: if false; // No deletion of timesheets
     }
 
     // ============================================
-    // CRM & Sales
+    // CRM & Sales (Territory Based)
     // ============================================
 
     match /accounts/{accountId} {
-      allow read: if canAccessClient(accountId) ||
-        isClientPortalUser(accountId);
-      allow create: if hasPermission('accounts', 'create');
-      allow update: if hasPermission('accounts', 'update');
-      allow delete: if hasRole('admin');
-    }
+      allow read: if canAccessAccount(accountId);
 
-    match /opportunities/{oppId} {
-      allow read: if hasPermission('opportunities', 'read') ||
-        resource.data.ownerId == request.auth.uid;
-      allow create: if hasPermission('opportunities', 'create');
-      allow update: if hasPermission('opportunities', 'update') ||
-        resource.data.ownerId == request.auth.uid;
-      allow delete: if hasRole('admin');
-    }
+      allow create: if hasAnyRole(['sales_rep', 'sales_manager', 'admin']) &&
+        hasRequiredFields(['name', 'type']) &&
+        request.resource.data.assignedTo == request.auth.uid;
 
-    match /quotes/{quoteId} {
-      allow read: if hasPermission('quotes', 'read') ||
-        resource.data.createdBy == request.auth.uid ||
-        isClientPortalUser(resource.data.accountId);
-      allow create: if hasPermission('quotes', 'create');
-      allow update: if hasPermission('quotes', 'update') ||
-        resource.data.createdBy == request.auth.uid;
-      allow delete: if hasRole('admin');
-    }
+      allow update: if canAccessAccount(accountId) &&
+        (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['creditLimit', 'paymentTerms']) ||
+          hasAnyRole(['finance_manager', 'admin']));
 
-    // ============================================
-    // Finance & Billing
-    // ============================================
+      allow delete: if false; // Soft delete only
 
-    match /contracts/{contractId} {
-      allow read: if hasPermission('contracts', 'read') ||
-        isClientPortalUser(resource.data.accountId);
-      allow write: if hasPermission('contracts', 'write');
-    }
+      match /contacts/{contactId} {
+        allow read: if canAccessAccount(accountId);
+        allow write: if canAccessAccount(accountId) &&
+          hasAnyRole(['sales_rep', 'sales_manager', 'admin']);
+      }
 
-    match /invoices/{invoiceId} {
-      allow read: if hasPermission('invoices', 'read') ||
-        isClientPortalUser(resource.data.accountId);
-      allow create: if hasPermission('invoices', 'create');
-      allow update: if hasPermission('invoices', 'update');
-      allow delete: if hasRole('admin');
-    }
-
-    match /payments/{paymentId} {
-      allow read: if hasPermission('payments', 'read') ||
-        isClientPortalUser(resource.data.accountId);
-      allow create: if hasPermission('payments', 'create') ||
-        isClientPortalUser(request.resource.data.accountId);
-      allow update: if hasRole('finance_manager');
-      allow delete: if false;
-    }
-
-    match /transactions/{transactionId} {
-      allow read: if hasRole('finance_manager') || hasRole('admin');
-      allow write: if hasRole('finance_manager');
-    }
-
-    // ============================================
-    // Support & Ticketing
-    // ============================================
-
-    match /tickets/{ticketId} {
-      allow read: if hasPermission('tickets', 'read') ||
-        resource.data.assigneeId == request.auth.uid ||
-        isClientPortalUser(resource.data.accountId);
-      allow create: if hasPermission('tickets', 'create') ||
-        isClientPortalUser(request.resource.data.accountId);
-      allow update: if hasPermission('tickets', 'update') ||
-        resource.data.assigneeId == request.auth.uid;
-      allow delete: if hasRole('admin');
-
-      match /comments/{commentId} {
-        allow read: if canAccessClient(get(/databases/$(database)/documents/tickets/$(ticketId)).data.accountId);
-        allow create: if isAuthenticated();
+      match /notes/{noteId} {
+        allow read: if canAccessAccount(accountId);
+        allow create: if canAccessAccount(accountId) &&
+          request.resource.data.authorId == request.auth.uid;
         allow update: if resource.data.authorId == request.auth.uid;
         allow delete: if false;
       }
     }
 
+    match /opportunities/{oppId} {
+      allow read: if hasAnyRole(['sales_rep', 'sales_manager', 'admin']) ||
+        resource.data.ownerId == request.auth.uid ||
+        (hasRole('department_manager') &&
+          get(/databases/$(database)/documents/users/$(resource.data.ownerId)).data.departmentId == request.auth.token.department);
+
+      allow create: if hasAnyRole(['sales_rep', 'sales_manager', 'admin']) &&
+        hasRequiredFields(['accountId', 'name', 'stage', 'amount', 'expectedClose']) &&
+        request.resource.data.ownerId == request.auth.uid;
+
+      allow update: if (resource.data.ownerId == request.auth.uid ||
+          hasAnyRole(['sales_manager', 'admin'])) &&
+        (request.resource.data.amount <= 50000 ||
+          hasAnyRole(['sales_manager', 'admin']));
+
+      allow delete: if false; // Soft delete only
+    }
+
+    match /quotes/{quoteId} {
+      allow read: if hasAnyRole(['sales_rep', 'sales_manager', 'admin']) ||
+        resource.data.createdBy == request.auth.uid ||
+        isClientPortalUser(resource.data.accountId);
+
+      allow create: if hasAnyRole(['sales_rep', 'sales_manager', 'admin']) &&
+        hasRequiredFields(['accountId', 'validFrom', 'validUntil', 'lineItems']);
+
+      allow update: if (resource.data.createdBy == request.auth.uid &&
+          resource.data.status == 'draft') ||
+        (hasAnyRole(['sales_manager', 'admin']) &&
+          request.resource.data.discount != null &&
+          request.resource.data.discount > 20);
+
+      allow delete: if resource.data.status == 'draft' &&
+        (resource.data.createdBy == request.auth.uid || hasRole('admin'));
+    }
+
     // ============================================
-    // Learning Management System (LMS)
+    // Finance & Billing (Strict Controls)
+    // ============================================
+
+    match /contracts/{contractId} {
+      allow read: if hasAnyRole(['sales_manager', 'finance_manager', 'admin']) ||
+        isClientPortalUser(resource.data.accountId);
+
+      allow create: if hasAnyRole(['sales_manager', 'admin']) &&
+        hasRequiredFields(['accountId', 'title', 'type', 'startDate', 'endDate', 'value']);
+
+      allow update: if hasAnyRole(['sales_manager', 'admin']) &&
+        (request.resource.data.value <= 100000 || hasRole('admin'));
+
+      allow delete: if false;
+    }
+
+    match /invoices/{invoiceId} {
+      allow read: if hasAnyRole(['finance_user', 'finance_manager', 'admin']) ||
+        isClientPortalUser(resource.data.accountId);
+
+      allow create: if isFinanceOperation(); // Force through Cloud Function
+      allow update: if isFinanceOperation(); // Force through Cloud Function
+      allow delete: if false; // Never delete invoices
+    }
+
+    match /payments/{paymentId} {
+      allow read: if hasAnyRole(['finance_user', 'finance_manager', 'admin']) ||
+        isClientPortalUser(resource.data.accountId);
+
+      allow create: if isFinanceOperation(); // Force through Cloud Function
+      allow update: if isFinanceOperation(); // Force through Cloud Function
+      allow delete: if false; // Never delete payments
+    }
+
+    match /transactions/{transactionId} {
+      allow read: if hasAnyRole(['finance_manager', 'admin', 'super_admin']);
+      allow create: if isFinanceOperation(); // Force through Cloud Function
+      allow update: if isFinanceOperation(); // Force through Cloud Function
+      allow delete: if false; // Never delete transactions
+    }
+
+    match /finAccounts/{accountId} {
+      allow read: if hasAnyRole(['finance_user', 'finance_manager', 'admin']);
+      allow write: if hasAnyRole(['finance_manager', 'admin']);
+    }
+
+    match /payroll/{payrollId} {
+      allow read: if hasAnyRole(['hr_manager', 'finance_manager', 'admin']) ||
+        (isEmployeePortalUser() && resource.data.employeeId == request.auth.token.employeeId);
+      allow write: if isFinanceOperation(); // Force through Cloud Function
+    }
+
+    // ============================================
+    // Support & Tickets (SLA Enforced)
+    // ============================================
+
+    match /tickets/{ticketId} {
+      allow read: if hasAnyRole(['support_agent', 'support_manager', 'admin']) ||
+        resource.data.assigneeId == request.auth.uid ||
+        isClientPortalUser(resource.data.accountId);
+
+      allow create: if (hasAnyRole(['support_agent', 'support_manager', 'admin']) ||
+          isClientPortalUser(request.resource.data.accountId)) &&
+        hasRequiredFields(['subject', 'description', 'priority', 'status']) &&
+        request.resource.data.status == 'new';
+
+      allow update: if (hasAnyRole(['support_agent', 'support_manager', 'admin']) ||
+          resource.data.assigneeId == request.auth.uid) &&
+        (!resource.data.slaBreached || canBypassSLA());
+
+      allow delete: if false;
+
+      match /comments/{commentId} {
+        allow read: if canAccessAccount(get(/databases/$(database)/documents/tickets/$(ticketId)).data.accountId) ||
+          (!resource.data.isInternal && isClientPortalUser(get(/databases/$(database)/documents/tickets/$(ticketId)).data.accountId));
+
+        allow create: if isAuthenticated() &&
+          request.resource.data.authorId == request.auth.uid &&
+          (hasAnyRole(['support_agent', 'support_manager', 'admin']) ||
+            (!request.resource.data.isInternal &&
+              isClientPortalUser(get(/databases/$(database)/documents/tickets/$(ticketId)).data.accountId)));
+
+        allow update: if false;
+        allow delete: if false;
+      }
+
+      match /activities/{activityId} {
+        allow read: if hasAnyRole(['support_agent', 'support_manager', 'admin']);
+        allow write: if hasRole('system');
+      }
+    }
+
+    match /visits/{visitId} {
+      allow read: if hasAnyRole(['support_agent', 'support_manager', 'admin']) ||
+        resource.data.assigneeId == request.auth.uid ||
+        isClientPortalUser(get(/databases/$(database)/documents/clientSites/$(resource.data.clientSiteId)).data.accountId);
+
+      allow create: if hasAnyRole(['support_agent', 'support_manager', 'admin']) &&
+        hasRequiredFields(['ticketId', 'scheduledAt', 'assigneeId']);
+
+      allow update: if hasAnyRole(['support_manager', 'admin']) ||
+        (resource.data.assigneeId == request.auth.uid &&
+          request.resource.data.diff(resource.data).affectedKeys()
+            .hasOnly(['checkInTime', 'checkOutTime', 'notes', 'signature']));
+
+      allow delete: if hasRole('admin') && resource.data.status == 'scheduled';
+    }
+
+    match /slaPolicy/{policyId} {
+      allow read: if hasAnyRole(['support_agent', 'support_manager', 'admin']);
+      allow write: if hasAnyRole(['support_manager', 'admin']);
+    }
+
+    // ============================================
+    // Learning Management System
     // ============================================
 
     match /courses/{courseId} {
-      allow read: if isAuthenticated();
-      allow write: if hasPermission('courses', 'write');
+      allow read: if isAuthenticated() &&
+        (resource.data.audience == 'mixed' ||
+          (resource.data.audience == 'employee' && isEmployeePortalUser()) ||
+          (resource.data.audience == 'candidate' && isInPortal('candidate')) ||
+          (resource.data.audience == 'client' && isInPortal('client')));
+
+      allow write: if hasAnyRole(['training_manager', 'hr_manager', 'admin']);
 
       match /lessons/{lessonId} {
-        allow read: if isAuthenticated();
-        allow write: if hasPermission('courses', 'write');
+        allow read: if isAuthenticated() &&
+          get(/databases/$(database)/documents/courses/$(courseId)).data.active == true;
+        allow write: if hasAnyRole(['training_manager', 'hr_manager', 'admin']);
+      }
+
+      match /quizzes/{quizId} {
+        allow read: if isAuthenticated() &&
+          get(/databases/$(database)/documents/courses/$(courseId)).data.active == true;
+        allow write: if hasAnyRole(['training_manager', 'hr_manager', 'admin']);
       }
     }
 
     match /assignments/{assignmentId} {
-      allow read: if resource.data.userId == request.auth.uid ||
-        resource.data.candidateId == request.auth.token.candidateId ||
-        hasPermission('assignments', 'read');
-      allow create: if hasPermission('assignments', 'create');
-      allow update: if resource.data.userId == request.auth.uid ||
-        resource.data.candidateId == request.auth.token.candidateId ||
-        hasPermission('assignments', 'update');
+      allow read: if (resource.data.userId == request.auth.uid) ||
+        (resource.data.candidateId == request.auth.token.candidateId) ||
+        (resource.data.accountId == request.auth.token.accountId) ||
+        hasAnyRole(['training_manager', 'hr_manager', 'admin']);
+
+      allow create: if hasAnyRole(['training_manager', 'hr_manager', 'admin']) &&
+        hasRequiredFields(['courseId', 'assignedBy', 'status']);
+
+      allow update: if (resource.data.userId == request.auth.uid ||
+          resource.data.candidateId == request.auth.token.candidateId) &&
+        request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['status', 'progressPct', 'startedAt', 'completedAt', 'lessonProgress', 'quizAttempts']) ||
+        hasAnyRole(['training_manager', 'hr_manager', 'admin']);
+
       allow delete: if hasRole('admin');
     }
 
@@ -282,49 +531,120 @@ service cloud.firestore {
     // ============================================
 
     match /candidates/{candidateId} {
-      allow read: if hasPermission('candidates', 'read') ||
+      allow read: if hasAnyRole(['hr_user', 'hr_manager', 'admin']) ||
+        (hasRole('department_manager') &&
+          resource.data.department == request.auth.token.department) ||
         isCandidatePortalUser(candidateId);
-      allow write: if hasPermission('candidates', 'write');
+
+      allow create: if hasAnyRole(['hr_user', 'hr_manager', 'admin']) &&
+        hasRequiredFields(['name', 'email', 'position', 'stage']);
+
+      allow update: if hasAnyRole(['hr_user', 'hr_manager', 'admin']) ||
+        (isCandidatePortalUser(candidateId) &&
+          request.resource.data.diff(resource.data).affectedKeys()
+            .hasOnly(['phoneNumber', 'portfolioUrl', 'linkedinUrl', 'githubUrl']));
+
+      allow delete: if false;
 
       match /interviews/{interviewId} {
-        allow read: if hasPermission('candidates', 'read') ||
+        allow read: if hasAnyRole(['hr_user', 'hr_manager', 'admin']) ||
+          resource.data.interviewers.hasAny([request.auth.uid]) ||
           isCandidatePortalUser(candidateId);
-        allow write: if hasPermission('candidates', 'write');
+
+        allow write: if hasAnyRole(['hr_user', 'hr_manager', 'admin']);
+      }
+
+      match /assessments/{assessmentId} {
+        allow read: if hasAnyRole(['hr_user', 'hr_manager', 'admin']) ||
+          isCandidatePortalUser(candidateId);
+
+        allow create: if isCandidatePortalUser(candidateId) &&
+          request.resource.data.candidateId == candidateId;
+
+        allow update: if hasAnyRole(['hr_user', 'hr_manager', 'admin']);
+        allow delete: if false;
       }
     }
 
+    match /onboarding/{onboardingId} {
+      allow read: if hasAnyRole(['hr_user', 'hr_manager', 'admin']) ||
+        (isEmployeePortalUser() && resource.data.userId == request.auth.uid);
+
+      allow write: if hasAnyRole(['hr_user', 'hr_manager', 'admin']);
+    }
+
     // ============================================
-    // Assets & Inventory
+    // Assets & Inventory Management
     // ============================================
 
+    match /products/{productId} {
+      allow read: if isAuthenticated();
+      allow write: if hasAnyRole(['inventory_manager', 'admin']);
+    }
+
+    match /services/{serviceId} {
+      allow read: if isAuthenticated();
+      allow write: if hasAnyRole(['service_manager', 'admin']);
+    }
+
+    match /bundles/{bundleId} {
+      allow read: if isAuthenticated();
+      allow write: if hasAnyRole(['product_manager', 'admin']);
+    }
+
+    match /pricebooks/{pricebookId} {
+      allow read: if isAuthenticated();
+      allow write: if hasAnyRole(['finance_manager', 'admin']);
+
+      match /entries/{entryId} {
+        allow read: if isAuthenticated();
+        allow write: if hasAnyRole(['finance_manager', 'admin']);
+      }
+    }
+
     match /inventory/{inventoryId} {
-      allow read: if hasPermission('inventory', 'read');
-      allow write: if hasPermission('inventory', 'write');
+      allow read: if hasAnyRole(['inventory_user', 'inventory_manager', 'admin']);
+
+      allow create: if hasAnyRole(['inventory_manager', 'admin']) &&
+        hasRequiredFields(['productId', 'quantity', 'location']);
+
+      allow update: if hasAnyRole(['inventory_user', 'inventory_manager', 'admin']) &&
+        (request.resource.data.quantity >= 0);
+
+      allow delete: if false;
     }
 
     match /installedAssets/{assetId} {
-      allow read: if hasPermission('assets', 'read') ||
+      allow read: if hasAnyRole(['support_agent', 'support_manager', 'admin']) ||
         isClientPortalUser(resource.data.accountId);
-      allow write: if hasPermission('assets', 'write');
+
+      allow write: if hasAnyRole(['support_agent', 'support_manager', 'admin']);
     }
 
     match /clientSites/{siteId} {
-      allow read: if hasPermission('sites', 'read') ||
+      allow read: if hasAnyRole(['sales_rep', 'support_agent', 'admin']) ||
         isClientPortalUser(resource.data.accountId);
-      allow write: if hasPermission('sites', 'write');
+
+      allow write: if hasAnyRole(['sales_rep', 'admin']);
     }
 
     // ============================================
     // Automations & Workflows
     // ============================================
 
-    match /automations/{automationId} {
-      allow read: if hasRole('admin');
-      allow write: if hasRole('admin');
+    match /automationRules/{ruleId} {
+      allow read: if hasAnyRole(['admin', 'super_admin']);
+      allow write: if hasAnyRole(['admin', 'super_admin']);
     }
 
-    match /auditLogs/{logId} {
-      allow read: if hasRole('admin');
+    match /approvalChains/{chainId} {
+      allow read: if hasAnyRole(['department_manager', 'admin']);
+      allow write: if hasAnyRole(['admin', 'super_admin']);
+    }
+
+    match /workflowInstances/{instanceId} {
+      allow read: if hasAnyRole(['admin']) ||
+        resource.data.participants.hasAny([request.auth.uid]);
       allow write: if hasRole('system');
     }
 
@@ -333,45 +653,88 @@ service cloud.firestore {
     // ============================================
 
     match /portalInvites/{inviteId} {
-      allow read: if hasRole('admin') ||
+      allow read: if hasAnyRole(['hr_manager', 'admin']) ||
         resource.data.email == request.auth.token.email;
-      allow create: if hasPermission('portals', 'invite');
-      allow update: if hasRole('admin');
+
+      allow create: if hasAnyRole(['hr_manager', 'sales_rep', 'admin']) &&
+        hasRequiredFields(['email', 'portalType', 'expiresAt']);
+
+      allow update: if (resource.data.email == request.auth.token.email &&
+          resource.data.status == 'pending' &&
+          request.resource.data.status == 'accepted') ||
+        hasRole('admin');
+
       allow delete: if hasRole('admin');
     }
 
     match /announcements/{announcementId} {
-      allow read: if isAuthenticated();
-      allow write: if hasRole('admin');
+      allow read: if isAuthenticated() &&
+        (resource.data.targetAudience.hasAny(['all']) ||
+          (resource.data.targetAudience.hasAny(['employees']) && isEmployeePortalUser()) ||
+          (resource.data.targetAudience.hasAny(['clients']) && isInPortal('client')) ||
+          (resource.data.targetAudience.hasAny(['candidates']) && isInPortal('candidate')) ||
+          (isClientPortalUser(request.auth.token.accountId) &&
+            resource.data.targetAudience.hasAny([request.auth.token.accountId])));
+
+      allow write: if hasAnyRole(['admin', 'super_admin']);
     }
 
     // ============================================
-    // Catalog & Pricing
+    // Audit & System Logs
     // ============================================
 
-    match /products/{productId} {
-      allow read: if isAuthenticated();
-      allow write: if hasPermission('products', 'write');
+    match /auditLogs/{logId} {
+      allow read: if hasAnyRole(['admin', 'super_admin']) ||
+        (hasRole('department_manager') &&
+          resource.data.departmentId == request.auth.token.department);
+      allow write: if hasRole('system');
     }
 
-    match /services/{serviceId} {
-      allow read: if isAuthenticated();
-      allow write: if hasPermission('services', 'write');
+    match /systemLogs/{logId} {
+      allow read: if hasRole('super_admin');
+      allow write: if hasRole('system');
     }
 
-    match /pricebooks/{pricebookId} {
-      allow read: if isAuthenticated();
-      allow write: if hasRole('admin');
+    // ============================================
+    // Notifications
+    // ============================================
 
-      match /entries/{entryId} {
-        allow read: if isAuthenticated();
-        allow write: if hasRole('admin');
-      }
+    match /notifications/{notificationId} {
+      allow read: if resource.data.userId == request.auth.uid;
+      allow create: if hasRole('system');
+      allow update: if resource.data.userId == request.auth.uid &&
+        request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['read', 'readAt']);
+      allow delete: if resource.data.userId == request.auth.uid &&
+        resource.data.read == true;
     }
 
-    match /bundles/{bundleId} {
-      allow read: if isAuthenticated();
-      allow write: if hasRole('admin');
+    // ============================================
+    // Reports & Analytics (Read-only)
+    // ============================================
+
+    match /reports/{reportId} {
+      allow read: if hasAnyRole(['admin', 'super_admin']) ||
+        (hasRole('department_manager') &&
+          resource.data.departmentId == request.auth.token.department) ||
+        (resource.data.visibility == 'public' && isAuthenticated());
+      allow write: if hasRole('system');
+    }
+
+    match /dashboards/{dashboardId} {
+      allow read: if resource.data.userId == request.auth.uid ||
+        resource.data.shared == true ||
+        hasAnyRole(['admin', 'super_admin']);
+      allow write: if resource.data.userId == request.auth.uid ||
+        hasAnyRole(['admin', 'super_admin']);
+    }
+
+    // ============================================
+    // Temporary Collections (Development)
+    // ============================================
+
+    match /{document=**} {
+      allow read, write: if false; // Deny all access to undefined collections
     }
   }
 }
