@@ -1,62 +1,175 @@
 import * as functions from 'firebase-functions';
 import * as admin from 'firebase-admin';
-
-// Import triggers
-import * as invoiceTriggers from './triggers/invoice-triggers';
-import * as projectTriggers from './triggers/project-triggers';
-import * as ticketTriggers from './triggers/ticket-triggers';
-import * as opportunityTriggers from './triggers/opportunity-triggers';
-import * as candidateTriggers from './triggers/candidate-triggers';
-import * as scheduledTriggers from './triggers/scheduled-triggers';
+import express from 'express';
+import cors from 'cors';
 
 // Initialize Firebase Admin
 admin.initializeApp();
 
+// Import configuration
+import { getEnvConfig } from './config/environment';
+
+// Import API routers
+import authRouter from './api/auth';
+
+// Import triggers (these will be imported when created)
+// import * as invoiceTriggers from './triggers/invoice-triggers';
+// import * as projectTriggers from './triggers/project-triggers';
+// import * as ticketTriggers from './triggers/ticket-triggers';
+// import * as opportunityTriggers from './triggers/opportunity-triggers';
+// import * as candidateTriggers from './triggers/candidate-triggers';
+// import * as scheduledTriggers from './triggers/scheduled-triggers';
+
 // ============================================
-// Invoice Triggers
+// Express App Setup
 // ============================================
 
+const app = express();
+const envConfig = getEnvConfig();
+
+// Configure CORS
+app.use(cors({
+  origin: envConfig.corsOrigins,
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+}));
+
+// Body parsing middleware
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ extended: true, limit: '50mb' }));
+
+// Request logging middleware
+app.use((req, res, next) => {
+  console.log(`${new Date().toISOString()} ${req.method} ${req.path}`);
+  next();
+});
+
+// ============================================
+// API Routes
+// ============================================
+
+// Authentication routes
+app.use('/auth', authRouter);
+
+// Health check endpoint
+app.get('/health', (req, res) => {
+  res.status(200).json({
+    status: 'healthy',
+    timestamp: new Date().toISOString(),
+    version: '1.0.0',
+  });
+});
+
+// 404 handler
+app.use((req, res) => {
+  res.status(404).json({
+    success: false,
+    error: {
+      code: 'NOT_FOUND',
+      message: 'Endpoint not found',
+      path: req.path,
+    },
+  });
+});
+
+// Error handling middleware
+app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
+  console.error('Unhandled error:', err);
+  res.status(err.status || 500).json({
+    success: false,
+    error: {
+      code: err.code || 'INTERNAL_ERROR',
+      message: err.message || 'An unexpected error occurred',
+    },
+  });
+});
+
+// ============================================
+// Export HTTP Function
+// ============================================
+
+// Main API endpoint
+export const api = functions.region('us-central1').https.onRequest(app);
+
+// ============================================
+// Firestore Triggers (to be implemented)
+// ============================================
+
+// Example triggers - uncomment when trigger files are created
+/*
 export const onInvoiceCreated = invoiceTriggers.onInvoiceCreated;
 export const onInvoiceUpdated = invoiceTriggers.onInvoiceUpdated;
-export const checkOverdueInvoices = invoiceTriggers.checkOverdueInvoices;
-
-// ============================================
-// Project Triggers
-// ============================================
-
 export const onProjectCreated = projectTriggers.onProjectCreated;
 export const onProjectUpdated = projectTriggers.onProjectUpdated;
-export const checkProjectBudgets = projectTriggers.checkProjectBudgets;
-
-// ============================================
-// Ticket Triggers
-// ============================================
-
 export const onTicketCreated = ticketTriggers.onTicketCreated;
 export const onTicketUpdated = ticketTriggers.onTicketUpdated;
-export const checkSLABreaches = ticketTriggers.checkSLABreaches;
+*/
 
 // ============================================
-// Opportunity Triggers
+// Scheduled Functions (to be implemented)
 // ============================================
 
-export const onOpportunityCreated = opportunityTriggers.onOpportunityCreated;
-export const onOpportunityUpdated = opportunityTriggers.onOpportunityUpdated;
+// Daily scheduled tasks - runs at 9 AM UTC
+export const dailyTasks = functions.pubsub
+  .schedule('0 9 * * *')
+  .timeZone('UTC')
+  .onRun(async (context) => {
+    console.log('Running daily tasks...');
 
-// ============================================
-// Candidate Triggers
-// ============================================
+    // Check overdue invoices
+    // await checkOverdueInvoices();
 
-export const onCandidateCreated = candidateTriggers.onCandidateCreated;
-export const onCandidateUpdated = candidateTriggers.onCandidateUpdated;
+    // Clean up expired tokens
+    // await cleanupExpiredTokens();
 
-// ============================================
-// Scheduled Functions
-// ============================================
+    // Generate daily reports
+    // await generateDailyReports();
 
-export const dailyMaintenance = scheduledTriggers.dailyMaintenance;
-export const weeklyReports = scheduledTriggers.weeklyReports;
-export const monthlyBilling = scheduledTriggers.monthlyBilling;
+    return null;
+  });
+
+// SLA monitoring - runs every 15 minutes
+export const slaMonitoring = functions.pubsub
+  .schedule('*/15 * * * *')
+  .timeZone('UTC')
+  .onRun(async (context) => {
+    console.log('Checking SLA breaches...');
+
+    // Check ticket SLA breaches
+    // await checkSLABreaches();
+
+    return null;
+  });
+
+// Weekly reports - runs every Monday at 10 AM UTC
+export const weeklyReports = functions.pubsub
+  .schedule('0 10 * * 1')
+  .timeZone('UTC')
+  .onRun(async (context) => {
+    console.log('Generating weekly reports...');
+
+    // Generate and send weekly reports
+    // await generateWeeklyReports();
+
+    return null;
+  });
+
+// Monthly billing - runs on the 1st of each month at midnight UTC
+export const monthlyBilling = functions.pubsub
+  .schedule('0 0 1 * *')
+  .timeZone('UTC')
+  .onRun(async (context) => {
+    console.log('Processing monthly billing...');
+
+    // Process recurring invoices
+    // await processRecurringInvoices();
+
+    // Process subscriptions
+    // await processSubscriptions();
+
+    return null;
+  });
 
 // ============================================
 // HTTP Functions for Webhooks
