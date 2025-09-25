@@ -69,8 +69,8 @@ export function PortalLayout({
         'transition-all duration-300 ease-in-out',
         sidebarOpen && !isMobile
           ? sidebarCollapsed
-            ? 'ml-16'
-            : 'ml-64'
+            ? 'ml-20'
+            : 'ml-72'
           : 'ml-0'
       )}>
         {/* Header */}
