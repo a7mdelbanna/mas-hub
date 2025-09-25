@@ -1,6 +1,6 @@
 import React from 'react';
 import { useSelector, useDispatch } from 'react-redux';
-import { RootState } from '../../store';
+import type { RootState } from '../../store';
 import { removeNotification } from '../../store/slices/uiSlice';
 import { X, CheckCircle, AlertTriangle, AlertCircle, Info } from 'lucide-react';
 import { cn } from '../../lib/utils/cn';

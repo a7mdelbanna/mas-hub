@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
-import { RootState } from '../../store';
+import type { RootState } from '../../store';
 import { toggleSidebar, setSidebarCollapsed } from '../../store/slices/uiSlice';
 import { PortalHeader } from './PortalHeader';
 import { PortalSidebar } from './PortalSidebar';
-import { User, PortalType } from '../../types/models';
+import type { User, PortalType } from '../../types/models';
 import { cn } from '../../lib/utils/cn';
 
 interface SidebarItem {
