@@ -7,7 +7,6 @@ import { auth } from '../../lib/firebase/config';
 import { logout } from '../../store/slices/authSlice';
 import { addNotification } from '../../store/slices/uiSlice';
 import { useTheme } from '../ui/ThemeProvider';
-import { User, PortalType } from '../../types/models';
 import {
   Menu,
   Bell,
@@ -22,9 +21,11 @@ import {
 } from 'lucide-react';
 import { cn } from '../../lib/utils/cn';
 
+type PortalType = 'admin' | 'employee' | 'client' | 'candidate';
+
 interface PortalHeaderProps {
-  portalType: PortalType | 'admin';
-  user: User | null;
+  portalType: PortalType;
+  user: any;
   onSidebarToggle: () => void;
   sidebarOpen: boolean;
 }

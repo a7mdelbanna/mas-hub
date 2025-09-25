@@ -13,7 +13,7 @@ interface UIState {
     type: 'info' | 'warning' | 'success' | 'error';
     title: string;
     message: string;
-    timestamp: Date;
+    timestamp: string; // ISO string for Redux serialization
     read: boolean;
   }[];
 }
@@ -55,7 +55,7 @@ export const uiSlice = createSlice({
       const notification = {
         ...action.payload,
         id: Date.now().toString(),
-        timestamp: new Date(),
+        timestamp: new Date().toISOString(), // Store as ISO string for Redux serialization
         read: false,
       };
       state.notifications.unshift(notification);

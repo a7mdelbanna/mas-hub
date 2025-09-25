@@ -27,13 +27,31 @@ export default function LoginPage() {
     setIsLoading(true);
 
     try {
-      await signInWithEmailAndPassword(auth, email, password);
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+
+      // Get the ID token to check roles
+      const idTokenResult = await userCredential.user.getIdTokenResult();
+      const roles = idTokenResult.claims.roles as string[] || [];
+
       dispatch(addNotification({
         type: 'success',
         title: t('auth.signInSuccess'),
         message: `Welcome back!`,
       }));
-      navigate(from, { replace: true });
+
+      // Redirect based on user role
+      if (roles.includes('admin') || roles.includes('super_admin')) {
+        navigate('/admin', { replace: true });
+      } else if (roles.includes('manager') || roles.includes('employee')) {
+        navigate('/employee', { replace: true });
+      } else if (roles.includes('client')) {
+        navigate('/client', { replace: true });
+      } else if (roles.includes('candidate')) {
+        navigate('/candidate', { replace: true });
+      } else {
+        // Fallback to employee dashboard
+        navigate('/employee', { replace: true });
+      }
     } catch (error: any) {
       dispatch(addNotification({
         type: 'error',
@@ -170,7 +188,13 @@ export default function LoginPage() {
 
           {/* Footer */}
           <div className="mt-8 text-center text-sm text-gray-600 dark:text-gray-400">
-            <p>MAS Business OS v1.0</p>
+            <p>
+              Don't have an account?{' '}
+              <a href="/signup" className="text-primary hover:text-primary/80 font-medium">
+                Sign up
+              </a>
+            </p>
+            <p className="mt-4">MAS Business OS v1.0</p>
             <p className="mt-1">© 2024 MAS. All rights reserved.</p>
           </div>
         </div>

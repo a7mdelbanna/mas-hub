@@ -14,7 +14,16 @@ export const store = configureStore({
     getDefaultMiddleware({
       serializableCheck: {
         ignoredActions: ['auth/setUser'],
-        ignoredPaths: ['auth.user.createdAt', 'auth.user.updatedAt'],
+        ignoredPaths: [
+          'auth.user.createdAt',
+          'auth.user.updatedAt',
+          'auth.user.startDate',
+          'auth.user.endDate',
+          'auth.user.metadata',
+          'auth.user.metadata.createdAt',
+          'auth.user.metadata.updatedAt',
+          'auth.user.metadata.lastLoginAt',
+        ],
       },
     }).concat(api.middleware),
   devTools: import.meta.env.DEV,

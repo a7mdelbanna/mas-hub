@@ -5,11 +5,14 @@ import { LoadingSpinner } from '../components/ui/LoadingSpinner';
 
 // Lazy load portal components
 const LoginPage = React.lazy(() => import('../modules/auth/components/LoginPage'));
+const SignupPage = React.lazy(() => import('../modules/auth/components/SignupPage'));
+const OnboardingPage = React.lazy(() => import('../modules/onboarding/components/OnboardingPage'));
 const AdminPortal = React.lazy(() => import('../modules/portals/components/AdminPortal'));
 const EmployeePortal = React.lazy(() => import('../modules/portals/components/EmployeePortal'));
 const ClientPortal = React.lazy(() => import('../modules/portals/components/ClientPortal'));
 const CandidatePortal = React.lazy(() => import('../modules/portals/components/CandidatePortal'));
 const NotFoundPage = React.lazy(() => import('../components/ui/NotFoundPage'));
+const UnauthorizedPage = React.lazy(() => import('../components/ui/UnauthorizedPage'));
 
 export function AppRoutes() {
   return (
@@ -17,6 +20,10 @@ export function AppRoutes() {
       <Routes>
         {/* Public Routes */}
         <Route path="/login" element={<LoginPage />} />
+        <Route path="/signup" element={<SignupPage />} />
+
+        {/* Onboarding Route */}
+        <Route path="/onboarding" element={<OnboardingPage />} />
 
         {/* Protected Portal Routes */}
         <Route
@@ -56,7 +63,10 @@ export function AppRoutes() {
         />
 
         {/* Default redirect */}
-        <Route path="/" element={<Navigate to="/employee" replace />} />
+        <Route path="/" element={<Navigate to="/login" replace />} />
+
+        {/* Error pages */}
+        <Route path="/unauthorized" element={<UnauthorizedPage />} />
 
         {/* 404 Page */}
         <Route path="*" element={<NotFoundPage />} />

@@ -28,6 +28,14 @@ export const authSlice = createSlice({
       state.isAuthenticated = !!action.payload;
       state.isLoading = false;
       state.error = null;
+      // Also update roles and permissions from user
+      if (action.payload) {
+        state.roles = action.payload.roles || [];
+        state.permissions = action.payload.permissions || [];
+      } else {
+        state.roles = [];
+        state.permissions = [];
+      }
     },
     setLoading: (state, action: PayloadAction<boolean>) => {
       state.isLoading = action.payload;

@@ -36,7 +36,7 @@ export function useAuth() {
       case 'client':
         return authState.user?.portalAccess?.client && authState.user.portalAccess.client.length > 0;
       case 'candidate':
-        return !!authState.user?.portalAccess;
+        return !!authState.user?.portalAccess?.candidate;
       default:
         return false;
     }

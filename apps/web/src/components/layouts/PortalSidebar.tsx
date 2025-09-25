@@ -1,9 +1,10 @@
 import React from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { PortalType } from '../../types/models';
 import { cn } from '../../lib/utils/cn';
 import * as Icons from 'lucide-react';
+
+type PortalType = 'admin' | 'employee' | 'client' | 'candidate';
 
 interface SidebarItem {
   id: string;
@@ -15,7 +16,7 @@ interface SidebarItem {
 }
 
 interface PortalSidebarProps {
-  portalType: PortalType | 'admin';
+  portalType: PortalType;
   items: SidebarItem[];
   isOpen: boolean;
   isCollapsed: boolean;

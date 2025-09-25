@@ -4,7 +4,7 @@
 
 export type Currency = 'USD' | 'EGP' | 'EUR' | 'GBP' | 'AED';
 export type Language = 'en' | 'ar' | 'ru';
-export type PortalType = 'client' | 'employee' | 'candidate';
+export type PortalType = 'admin' | 'employee' | 'client' | 'candidate';
 
 export const ProjectStatus = {
   DRAFT: 'draft',
