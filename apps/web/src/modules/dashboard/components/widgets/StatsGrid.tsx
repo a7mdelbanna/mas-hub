@@ -64,49 +64,75 @@ const stats = [
 export default function StatsGrid() {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-      {stats.map((stat) => (
+      {stats.map((stat, index) => (
         <div
           key={stat.id}
-          className="group relative overflow-hidden rounded-2xl bg-white dark:bg-gray-800 p-6 shadow-lg hover:shadow-2xl transition-all duration-300 border border-gray-100 dark:border-gray-700 hover:scale-105"
+          className="group relative perspective-1000"
+          style={{ animationDelay: `${index * 100}ms` }}
         >
-          {/* Background Gradient Decoration */}
-          <div className={`absolute top-0 right-0 w-32 h-32 bg-gradient-to-br ${stat.color} opacity-10 rounded-full -mr-16 -mt-16 group-hover:scale-150 transition-transform duration-500`}></div>
+          {/* 3D Card Container with Glassmorphism */}
+          <div className="relative overflow-hidden rounded-2xl bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl p-6 shadow-xl hover:shadow-2xl transition-all duration-500 border border-white/20 dark:border-gray-700/50 transform-gpu hover:-translate-y-2 hover:scale-105 hover:rotate-y-5">
+            {/* Animated Gradient Background */}
+            <div className={`absolute inset-0 bg-gradient-to-br ${stat.color} opacity-0 group-hover:opacity-10 transition-opacity duration-500`}></div>
 
-          <div className="relative z-10">
-            {/* Icon */}
-            <div className={`inline-flex p-3 rounded-xl ${stat.bgColor} mb-4`}>
-              <stat.icon className={`h-6 w-6 ${stat.textColor}`} />
-            </div>
+            {/* Glow Effect */}
+            <div className={`absolute -inset-0.5 bg-gradient-to-r ${stat.color} rounded-2xl opacity-0 group-hover:opacity-20 blur-xl transition-opacity duration-500`}></div>
 
-            {/* Title */}
-            <p className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">
-              {stat.title}
-            </p>
+            {/* Decorative Elements */}
+            <div className={`absolute top-0 right-0 w-40 h-40 bg-gradient-to-br ${stat.color} opacity-5 rounded-full -mr-20 -mt-20 group-hover:scale-150 group-hover:opacity-10 transition-all duration-700`}></div>
+            <div className="absolute bottom-0 left-0 w-20 h-20 bg-gradient-to-tr from-white/10 to-transparent rounded-full -ml-10 -mb-10"></div>
 
-            {/* Value and Change */}
-            <div className="flex items-end justify-between">
-              <h3 className="text-3xl font-bold text-gray-900 dark:text-white">
-                {stat.value}
-              </h3>
+            <div className="relative z-10">
+              {/* 3D Icon with Glow */}
+              <div className={`relative inline-flex p-4 rounded-2xl bg-gradient-to-br ${stat.color} mb-4 shadow-lg group-hover:shadow-2xl group-hover:scale-110 transition-all duration-500`}>
+                <div className={`absolute inset-0 bg-gradient-to-br ${stat.color} rounded-2xl blur-md opacity-50 group-hover:opacity-75 transition-opacity`}></div>
+                <stat.icon className="relative h-6 w-6 text-white" />
+              </div>
 
-              <div className={`flex items-center space-x-1 ${
-                stat.changeType === 'positive'
-                  ? 'text-emerald-600 dark:text-emerald-400'
-                  : 'text-red-600 dark:text-red-400'
-              }`}>
-                {stat.changeType === 'positive' ? (
-                  <ArrowUpRight className="h-4 w-4" />
-                ) : (
-                  <ArrowDownRight className="h-4 w-4" />
-                )}
-                <span className="text-sm font-semibold">{stat.change}</span>
+              {/* Title with Animation */}
+              <p className="text-sm font-semibold text-gray-600 dark:text-gray-400 mb-2 tracking-wide uppercase">
+                {stat.title}
+              </p>
+
+              {/* Value and Change */}
+              <div className="flex items-end justify-between mb-3">
+                <h3 className="text-4xl font-bold bg-gradient-to-br from-gray-900 to-gray-600 dark:from-white dark:to-gray-300 bg-clip-text text-transparent group-hover:scale-110 transition-transform duration-300 origin-left">
+                  {stat.value}
+                </h3>
+
+                <div className={`flex items-center space-x-1 px-2 py-1 rounded-lg ${
+                  stat.changeType === 'positive'
+                    ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400'
+                    : 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400'
+                }`}>
+                  {stat.changeType === 'positive' ? (
+                    <ArrowUpRight className="h-4 w-4 animate-bounce-subtle" />
+                  ) : (
+                    <ArrowDownRight className="h-4 w-4 animate-bounce-subtle" />
+                  )}
+                  <span className="text-sm font-bold">{stat.change}</span>
+                </div>
+              </div>
+
+              {/* Description with Subtle Animation */}
+              <p className="text-xs text-gray-500 dark:text-gray-400 flex items-center space-x-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-gradient-to-r from-blue-500 to-purple-500 animate-pulse"></span>
+                <span>{stat.description}</span>
+              </p>
+
+              {/* Progress Bar */}
+              <div className="mt-4 h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                <div
+                  className={`h-full bg-gradient-to-r ${stat.color} rounded-full transition-all duration-1000 ease-out group-hover:animate-shimmer`}
+                  style={{ width: `${stat.changeType === 'positive' ? '75%' : '45%'}` }}
+                ></div>
               </div>
             </div>
 
-            {/* Description */}
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
-              {stat.description}
-            </p>
+            {/* Shine Effect on Hover */}
+            <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500">
+              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
+            </div>
           </div>
         </div>
       ))}

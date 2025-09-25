@@ -74,86 +74,88 @@ const activities = [
 
 export default function RecentActivity() {
   return (
-    <div className="rounded-2xl bg-white dark:bg-gray-800 p-6 shadow-lg border border-gray-100 dark:border-gray-700">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-1">
-            Recent Activity
-          </h3>
-          <p className="text-sm text-gray-500 dark:text-gray-400">
-            Latest updates from your team
-          </p>
-        </div>
-        <button className="text-sm text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 font-medium">
-          View All
-        </button>
-      </div>
+    <div className="relative">
+      {/* Glassmorphic Container */}
+      <div className="relative overflow-hidden rounded-3xl bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl shadow-2xl border border-white/20 dark:border-gray-700/50">
+        {/* Background Gradient */}
+        <div className="absolute inset-0 bg-gradient-to-br from-indigo-50/30 via-purple-50/20 to-blue-50/30 dark:from-indigo-950/10 dark:via-purple-950/5 dark:to-blue-950/10"></div>
 
-      {/* Activity Feed */}
-      <div className="space-y-4 max-h-96 overflow-y-auto custom-scrollbar">
-        {activities.map((activity, index) => (
-          <div key={activity.id} className="relative">
-            {/* Timeline Line */}
-            {index !== activities.length - 1 && (
-              <div className="absolute left-5 top-12 bottom-0 w-0.5 bg-gray-200 dark:bg-gray-700"></div>
-            )}
+        {/* Decorative Elements */}
+        <div className="absolute bottom-0 left-0 w-64 h-64 bg-gradient-to-tr from-indigo-400/10 to-purple-600/10 rounded-full blur-3xl -ml-32 -mb-32"></div>
 
-            {/* Activity Item */}
-            <div className="flex items-start space-x-3 group">
-              {/* Icon */}
-              <div className={`flex-shrink-0 p-2 rounded-lg ${activity.bg} relative z-10`}>
-                <activity.icon className={`h-4 w-4 ${activity.color}`} />
+        <div className="relative z-10 p-8">
+          {/* Premium Header */}
+          <div className="flex items-center justify-between mb-8">
+            <div className="flex items-center space-x-3">
+              <div className="p-2 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 shadow-lg">
+                <Clock className="h-5 w-5 text-white" />
               </div>
+              <div>
+                <h3 className="text-2xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 dark:from-white dark:to-gray-300 bg-clip-text text-transparent">
+                  Recent Activity
+                </h3>
+                <p className="text-sm text-gray-600 dark:text-gray-400 flex items-center space-x-2 mt-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                  <span>Live updates from your team</span>
+                </p>
+              </div>
+            </div>
+            <button className="px-4 py-2 rounded-xl bg-gradient-to-r from-indigo-500 to-purple-600 text-white text-sm font-bold hover:shadow-lg hover:scale-105 transition-all duration-300">
+              View All
+            </button>
+          </div>
 
-              {/* Content */}
-              <div className="flex-1 min-w-0">
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <p className="text-sm font-medium text-gray-900 dark:text-white">
-                      {activity.action}
-                    </p>
-                    <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
-                      {activity.description}
-                    </p>
-                    <div className="flex items-center space-x-2 mt-2 text-xs text-gray-500 dark:text-gray-400">
-                      <span>{activity.user}</span>
-                      <span>•</span>
-                      <div className="flex items-center space-x-1">
-                        <Clock className="h-3 w-3" />
-                        <span>{activity.timestamp}</span>
+          {/* Ultra-Premium Activity Feed */}
+          <div className="space-y-5 max-h-96 overflow-y-auto scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent">
+            {activities.map((activity, index) => (
+              <div key={activity.id} className="relative group/item">
+                {/* Timeline Line with Gradient */}
+                {index !== activities.length - 1 && (
+                  <div className="absolute left-6 top-14 bottom-0 w-px bg-gradient-to-b from-gray-300 to-transparent dark:from-gray-600 dark:to-transparent"></div>
+                )}
+
+                {/* Activity Item */}
+                <div className="relative overflow-hidden rounded-2xl bg-white/50 dark:bg-gray-700/30 backdrop-blur-sm p-4 border border-gray-200/50 dark:border-gray-600/30 hover:bg-white/80 dark:hover:bg-gray-700/50 hover:scale-[1.02] transition-all duration-300">
+                  <div className="flex items-start space-x-4">
+                    {/* Icon with 3D Effect */}
+                    <div className={`flex-shrink-0 p-3 rounded-xl ${activity.bg} relative z-10 shadow-lg group-hover/item:scale-110 transition-transform duration-300`}>
+                      <div className={`absolute inset-0 ${activity.bg} blur-md opacity-50 rounded-xl`}></div>
+                      <activity.icon className={`relative h-5 w-5 ${activity.color}`} />
+                    </div>
+
+                    {/* Content */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <p className="text-sm font-bold text-gray-900 dark:text-white mb-1">
+                            {activity.action}
+                          </p>
+                          <p className="text-xs text-gray-600 dark:text-gray-400 leading-relaxed">
+                            {activity.description}
+                          </p>
+                          <div className="flex items-center space-x-3 mt-3">
+                            <span className="text-xs font-medium text-gray-700 dark:text-gray-300 px-2 py-1 rounded-lg bg-gray-100 dark:bg-gray-600/50">
+                              {activity.user}
+                            </span>
+                            <div className="flex items-center space-x-1.5 text-xs text-gray-500 dark:text-gray-400">
+                              <Clock className="h-3.5 w-3.5" />
+                              <span>{activity.timestamp}</span>
+                            </div>
+                          </div>
+                        </div>
                       </div>
                     </div>
                   </div>
+
+                  {/* Hover Shine Effect */}
+                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover/item:translate-x-full transition-transform duration-1000"></div>
                 </div>
               </div>
-            </div>
+            ))}
           </div>
-        ))}
+        </div>
       </div>
 
-      {/* Custom Scrollbar Styles */}
-      <style>{`
-        .custom-scrollbar::-webkit-scrollbar {
-          width: 6px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-track {
-          background: transparent;
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb {
-          background: #cbd5e1;
-          border-radius: 3px;
-        }
-        .dark .custom-scrollbar::-webkit-scrollbar-thumb {
-          background: #475569;
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-          background: #94a3b8;
-        }
-        .dark .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-          background: #64748b;
-        }
-      `}</style>
     </div>
   );
 }
