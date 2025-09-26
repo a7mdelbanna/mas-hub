@@ -1,12 +1,11 @@
 import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { signInWithEmailAndPassword, sendPasswordResetEmail } from 'firebase/auth';
-import { auth } from '../../../lib/firebase/config';
 import { useDispatch } from 'react-redux';
 import { addNotification } from '../../../store/slices/uiSlice';
 import { LoadingSpinner } from '../../../components/ui/LoadingSpinner';
 import { Eye, EyeOff, Mail, Lock, ArrowRight } from 'lucide-react';
+import { authService } from '../../../services/firebase';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -27,19 +26,17 @@ export default function LoginPage() {
     setIsLoading(true);
 
     try {
-      const userCredential = await signInWithEmailAndPassword(auth, email, password);
-
-      // Get the ID token to check roles
-      const idTokenResult = await userCredential.user.getIdTokenResult();
-      const roles = idTokenResult.claims.roles as string[] || [];
+      // Use the new auth service for signing in
+      const userProfile = await authService.signIn(email, password, true);
 
       dispatch(addNotification({
         type: 'success',
         title: t('auth.signInSuccess'),
-        message: `Welcome back!`,
+        message: `Welcome back, ${userProfile.displayName}!`,
       }));
 
-      // Redirect based on user role
+      // Redirect based on user role from profile
+      const roles = userProfile.roles;
       if (roles.includes('admin') || roles.includes('super_admin')) {
         navigate('/admin', { replace: true });
       } else if (roles.includes('manager') || roles.includes('employee')) {
@@ -74,7 +71,7 @@ export default function LoginPage() {
     }
 
     try {
-      await sendPasswordResetEmail(auth, email);
+      await authService.sendPasswordResetEmail(email);
       setResetEmailSent(true);
       dispatch(addNotification({
         type: 'success',

@@ -168,6 +168,72 @@ router.post('/signup', async (req: Request, res: Response) => {
   }
 });
 
+router.post('/check-email-availability', async (req: Request, res: Response) => {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      return res.status(400).json({
+        success: false,
+        error: {
+          code: 'INVALID_REQUEST',
+          message: 'Email is required'
+        }
+      });
+    }
+
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return res.status(400).json({
+        success: false,
+        error: {
+          code: 'INVALID_EMAIL',
+          message: 'Invalid email format'
+        }
+      });
+    }
+
+    try {
+      // Try to get user by email - if this succeeds, email exists
+      await admin.auth().getUserByEmail(email);
+
+      // If we get here, email is already in use
+      return res.status(200).json({
+        success: true,
+        data: {
+          available: false,
+          message: 'This email is already registered'
+        }
+      });
+    } catch (error: any) {
+      if (error.code === 'auth/user-not-found') {
+        // Email is available
+        return res.status(200).json({
+          success: true,
+          data: {
+            available: true,
+            message: 'Email is available'
+          }
+        });
+      }
+
+      // Other errors
+      throw error;
+    }
+
+  } catch (error) {
+    console.error('Email availability check error:', error);
+    return res.status(500).json({
+      success: false,
+      error: {
+        code: 'INTERNAL_ERROR',
+        message: 'Failed to check email availability'
+      }
+    });
+  }
+});
+
 router.post('/verify-email', async (req: Request, res: Response) => {
   try {
     const { idToken } = req.body;

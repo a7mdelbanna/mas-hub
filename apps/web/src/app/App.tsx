@@ -7,6 +7,7 @@ import { I18nextProvider } from 'react-i18next';
 import { store } from '../store';
 import i18n from '../lib/i18n';
 import { AuthProvider } from '../modules/auth/components/AuthProvider';
+import { OrganizationProvider } from '../hooks/useOrganization';
 import { ThemeProvider } from '../components/ui/ThemeProvider';
 import { AppRoutes } from './AppRoutes';
 import { ErrorBoundary } from '../components/ui/ErrorBoundary';
@@ -36,10 +37,12 @@ export default function App() {
             <ThemeProvider defaultTheme="system" storageKey="mas-theme">
               <BrowserRouter>
                 <AuthProvider>
-                  <div className="min-h-screen bg-background">
-                    <AppRoutes />
-                    <Toaster />
-                  </div>
+                  <OrganizationProvider>
+                    <div className="min-h-screen bg-background">
+                      <AppRoutes />
+                      <Toaster />
+                    </div>
+                  </OrganizationProvider>
                 </AuthProvider>
               </BrowserRouter>
             </ThemeProvider>

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import type { RootState } from '../../store';
 import { removeNotification } from '../../store/slices/uiSlice';
@@ -22,6 +22,22 @@ const colorMap = {
 export function Toaster() {
   const notifications = useSelector((state: RootState) => state.ui.notifications);
   const dispatch = useDispatch();
+
+  // Auto-dismiss notifications after 5 seconds
+  useEffect(() => {
+    if (notifications.length === 0) return;
+
+    const timers = notifications.map((notification) => {
+      return setTimeout(() => {
+        dispatch(removeNotification(notification.id));
+      }, 5000);
+    });
+
+    // Cleanup timers on unmount or when notifications change
+    return () => {
+      timers.forEach(timer => clearTimeout(timer));
+    };
+  }, [notifications, dispatch]);
 
   const handleRemove = (id: string) => {
     dispatch(removeNotification(id));

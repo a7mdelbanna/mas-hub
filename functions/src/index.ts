@@ -11,6 +11,7 @@ import { getEnvConfig } from './config/environment';
 
 // Import API routers
 import authRouter from './api/auth';
+import usersRouter from './api/users';
 
 // Import triggers (these will be imported when created)
 // import * as invoiceTriggers from './triggers/invoice-triggers';
@@ -51,6 +52,9 @@ app.use((req, res, next) => {
 
 // Authentication routes
 app.use('/auth', authRouter);
+
+// User management routes
+app.use('/users', usersRouter);
 
 // Health check endpoint
 app.get('/health', (req, res) => {

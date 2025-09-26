@@ -50,6 +50,7 @@ export const api = createApi({
     'Course',
     'Candidate',
     'Asset',
+    'Branding',
   ],
   endpoints: () => ({}),
 });

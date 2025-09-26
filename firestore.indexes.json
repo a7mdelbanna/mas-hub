@@ -277,7 +277,7 @@
       "collectionGroup": "announcements",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "targetAudience", "array-contains": true },
+        { "fieldPath": "targetAudience", "arrayConfig": "CONTAINS" },
         { "fieldPath": "publishedAt", "order": "DESCENDING" }
       ]
     },
@@ -333,6 +333,41 @@
         { "fieldPath": "triggerType", "order": "ASCENDING" },
         { "fieldPath": "active", "order": "ASCENDING" },
         { "fieldPath": "priority", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "users",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "active", "order": "ASCENDING" },
+        { "fieldPath": "name", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "projects",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "organizationId", "order": "ASCENDING" },
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "tasks",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "organizationId", "order": "ASCENDING" },
+        { "fieldPath": "assignedTo", "order": "ASCENDING" },
+        { "fieldPath": "status", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "invoices",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "organizationId", "order": "ASCENDING" },
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "dueDate", "order": "ASCENDING" }
       ]
     }
   ],

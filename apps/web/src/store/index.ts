@@ -3,12 +3,14 @@ import { setupListeners } from '@reduxjs/toolkit/query';
 import { authSlice } from './slices/authSlice';
 import { uiSlice } from './slices/uiSlice';
 import { api } from '../lib/api/baseApi';
+import { mockAuthApi } from '../lib/api/mockAuthApi';
 
 export const store = configureStore({
   reducer: {
     auth: authSlice.reducer,
     ui: uiSlice.reducer,
     [api.reducerPath]: api.reducer,
+    [mockAuthApi.reducerPath]: mockAuthApi.reducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({
@@ -25,7 +27,7 @@ export const store = configureStore({
           'auth.user.metadata.lastLoginAt',
         ],
       },
-    }).concat(api.middleware),
+    }).concat(api.middleware, mockAuthApi.middleware),
   devTools: import.meta.env.DEV,
 });
 

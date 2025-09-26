@@ -1,15 +1,14 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
-import { auth, db } from '../../../lib/firebase/config';
-import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { useDispatch } from 'react-redux';
 import { addNotification } from '../../../store/slices/uiSlice';
 import { LoadingSpinner } from '../../../components/ui/LoadingSpinner';
 import { PasswordStrength } from '../../../components/shared/PasswordStrength';
 import { StepProgress } from '../../../components/shared/StepProgress';
-import { Mail, Lock, User, Building, Briefcase, Eye, EyeOff, ArrowRight, ArrowLeft } from 'lucide-react';
+import { useEmailValidation } from '../../../hooks/useEmailValidation';
+import { Mail, Lock, User, Building, Briefcase, Eye, EyeOff, ArrowRight, ArrowLeft, Check, X, Loader2 } from 'lucide-react';
+import { authService } from '../../../services/firebase';
 
 interface SignupFormData {
   email: string;
@@ -52,12 +51,22 @@ export default function SignupPage() {
   const { t } = useTranslation();
   const dispatch = useDispatch();
 
+  // Real-time email validation
+  const emailValidation = useEmailValidation(formData.email, 500);
+
   const validateStep = (step: number): boolean => {
     const newErrors: Partial<Record<keyof SignupFormData, string>> = {};
 
     if (step === 0) {
-      if (!formData.email) newErrors.email = 'Email is required';
-      else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) newErrors.email = 'Invalid email address';
+      if (!formData.email) {
+        newErrors.email = 'Email is required';
+      } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+        newErrors.email = 'Invalid email address';
+      } else if (emailValidation.error) {
+        newErrors.email = emailValidation.error;
+      } else if (emailValidation.isValid === false) {
+        newErrors.email = 'This email is already registered';
+      }
 
       if (!formData.password) newErrors.password = 'Password is required';
       else if (formData.password.length < 8) newErrors.password = 'Password must be at least 8 characters';
@@ -79,6 +88,11 @@ export default function SignupPage() {
   };
 
   const handleNext = () => {
+    // For step 0 (email step), also check if email is still being validated
+    if (currentStep === 0 && (emailValidation.isChecking || emailValidation.isValid === null || emailValidation.isValid === false)) {
+      return;
+    }
+
     if (validateStep(currentStep)) {
       setCurrentStep(currentStep + 1);
     }
@@ -96,78 +110,30 @@ export default function SignupPage() {
     setIsLoading(true);
 
     try {
-      const userCredential = await createUserWithEmailAndPassword(
-        auth,
-        formData.email,
-        formData.password
-      );
-
-      await updateProfile(userCredential.user, {
-        displayName: formData.displayName,
-      });
-
-      const roles = [formData.role];
-      const portalAccess: any = {
-        admin: false,
-        employee: false,
-        client: [],
-        candidate: false,
-      };
-
-      if (formData.role === 'admin' || formData.role === 'super_admin') {
-        roles.push('admin');
-        portalAccess.admin = true;
-        portalAccess.employee = true;
-      } else if (formData.role === 'manager') {
-        roles.push('employee');
-        portalAccess.employee = true;
-      } else if (formData.role === 'employee') {
-        portalAccess.employee = true;
-      } else if (formData.role === 'client') {
-        portalAccess.client = [userCredential.user.uid];
-      } else if (formData.role === 'candidate') {
-        portalAccess.candidate = true;
-      }
-
-      const userProfile = {
-        id: userCredential.user.uid,
+      // Use the new auth service for signing up
+      const userProfile = await authService.signUp({
         email: formData.email,
+        password: formData.password,
         displayName: formData.displayName,
-        phoneNumber: formData.phoneNumber || null,
-        roles,
-        permissions: [],
-        portalAccess,
-        active: true,
-        language: 'en',
-        companyName: formData.companyName || null,
-        department: formData.department || null,
-        position: formData.position || null,
-        onboardingCompleted: false,
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
-        createdBy: userCredential.user.uid,
-        updatedBy: userCredential.user.uid,
-      };
-
-      await setDoc(doc(db, 'users', userCredential.user.uid), userProfile);
+        role: formData.role as any,
+        phoneNumber: formData.phoneNumber,
+        companyName: formData.companyName,
+        department: formData.department,
+        position: formData.position,
+      });
 
       dispatch(addNotification({
         type: 'success',
         title: 'Account created successfully!',
-        message: `Welcome to MAS Business OS, ${formData.displayName}!`,
+        message: `Welcome to MAS Business OS, ${userProfile.displayName}! Please check your email to verify your account.`,
       }));
 
       navigate('/onboarding');
 
     } catch (error: any) {
       console.error('Signup error:', error);
-      let errorMessage = 'Failed to create account';
-
-      if (error.code === 'auth/email-already-in-use') {
-        errorMessage = 'This email is already registered';
-      } else if (error.code === 'auth/invalid-email') {
-        errorMessage = 'Invalid email address';
-      } else if (error.code === 'auth/weak-password') {
+      let errorMessage = error.message || 'Failed to create account';
+      if (error.code === 'auth/weak-password') {
         errorMessage = 'Password is too weak';
       }
 
@@ -197,12 +163,36 @@ export default function SignupPage() {
                   required
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  className={`input pr-10 ${errors.email ? 'border-red-500' : ''}`}
+                  className={`input pr-20 ${
+                    errors.email || emailValidation.error
+                      ? 'border-red-500'
+                      : emailValidation.isValid === true
+                      ? 'border-green-500'
+                      : ''
+                  }`}
                   placeholder="you@company.com"
                 />
-                <Mail className="absolute right-3 top-3 h-5 w-5 text-gray-400" />
+                <div className="absolute right-3 top-3 flex items-center space-x-2">
+                  {emailValidation.isChecking ? (
+                    <Loader2 className="h-4 w-4 text-blue-500 animate-spin" />
+                  ) : emailValidation.isValid === true ? (
+                    <Check className="h-4 w-4 text-green-500" />
+                  ) : emailValidation.isValid === false ? (
+                    <X className="h-4 w-4 text-red-500" />
+                  ) : null}
+                  <Mail className="h-5 w-5 text-gray-400" />
+                </div>
               </div>
-              {errors.email && <p className="mt-1 text-sm text-red-600">{errors.email}</p>}
+              {(errors.email || emailValidation.error) && (
+                <p className="mt-1 text-sm text-red-600">
+                  {errors.email || emailValidation.error}
+                </p>
+              )}
+              {emailValidation.isValid === true && !emailValidation.error && (
+                <p className="mt-1 text-sm text-green-600">
+                  {emailValidation.message || 'Email is available'}
+                </p>
+              )}
             </div>
 
             <div>
@@ -466,10 +456,24 @@ export default function SignupPage() {
                 <button
                   type="button"
                   onClick={handleNext}
-                  className="btn btn-primary flex-1 flex items-center justify-center px-6 py-3"
+                  disabled={currentStep === 0 && (emailValidation.isChecking || emailValidation.isValid !== true)}
+                  className={`btn btn-primary flex-1 flex items-center justify-center px-6 py-3 ${
+                    currentStep === 0 && (emailValidation.isChecking || emailValidation.isValid !== true)
+                      ? 'opacity-50 cursor-not-allowed'
+                      : ''
+                  }`}
                 >
-                  Continue
-                  <ArrowRight className="ml-2 h-4 w-4" />
+                  {currentStep === 0 && emailValidation.isChecking ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Checking...
+                    </>
+                  ) : (
+                    <>
+                      Continue
+                      <ArrowRight className="ml-2 h-4 w-4" />
+                    </>
+                  )}
                 </button>
               ) : (
                 <button

@@ -32,6 +32,49 @@ export function AuthProvider({ children }: AuthProviderProps) {
               console.log('User profile not found in Firestore, using auth data only');
             }
 
+            // Development mode: Mock roles based on email
+            let mockRoles = customClaims.roles || userProfile.roles || [];
+            let mockPortalAccess = customClaims.portalAccess || userProfile.portalAccess;
+
+            if (import.meta.env.DEV) {
+              const mockRoleMapping: { [key: string]: { roles: string[], portalAccess: any } } = {
+                'ahmed@mas.com': {
+                  roles: ['admin'],
+                  portalAccess: { admin: true, employee: true, client: [], candidate: false }
+                },
+                'admin@mas.com': {
+                  roles: ['admin'],
+                  portalAccess: { admin: true, employee: true, client: [], candidate: false }
+                },
+                'sarah@mas.com': {
+                  roles: ['admin'],
+                  portalAccess: { admin: true, employee: true, client: [], candidate: false }
+                },
+                'mike@mas.com': {
+                  roles: ['manager'],
+                  portalAccess: { admin: false, employee: true, client: [], candidate: false }
+                },
+                'john@mas.com': {
+                  roles: ['employee'],
+                  portalAccess: { admin: false, employee: true, client: [], candidate: false }
+                },
+                'jane@mas.com': {
+                  roles: ['employee'],
+                  portalAccess: { admin: false, employee: true, client: [], candidate: false }
+                },
+                'test@test.com': {
+                  roles: ['employee'],
+                  portalAccess: { admin: false, employee: true, client: [], candidate: false }
+                },
+              };
+
+              const userEmail = firebaseUser.email?.toLowerCase();
+              if (userEmail && mockRoleMapping[userEmail]) {
+                mockRoles = mockRoleMapping[userEmail].roles;
+                mockPortalAccess = mockRoleMapping[userEmail].portalAccess;
+              }
+            }
+
             // Create user object with sanitized data
             const user = {
               // Spread profile data first
@@ -39,12 +82,13 @@ export function AuthProvider({ children }: AuthProviderProps) {
               // Override with auth data to ensure correct values
               id: firebaseUser.uid,
               email: firebaseUser.email!,
+              name: firebaseUser.displayName || userProfile.displayName || userProfile.name || firebaseUser.email?.split('@')[0] || '',
               displayName: firebaseUser.displayName || userProfile.displayName || '',
               photoUrl: firebaseUser.photoURL || userProfile.photoUrl || null,
               // Add custom claims from token, fallback to Firestore profile
-              roles: customClaims.roles || userProfile.roles || [],
+              roles: mockRoles,
               permissions: customClaims.permissions || userProfile.permissions || [],
-              portalAccess: customClaims.portalAccess || userProfile.portalAccess || {
+              portalAccess: mockPortalAccess || {
                 admin: false,
                 employee: false,
                 client: [],

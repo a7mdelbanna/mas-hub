@@ -44,11 +44,12 @@ export function PortalSidebar({
     candidate: 'from-green-950 via-green-900 to-green-950',
   };
 
+  // Ultra-premium accent colors for each portal
   const portalAccents = {
-    admin: 'from-blue-500 via-purple-500 to-pink-500',
-    employee: 'from-blue-400 via-cyan-400 to-teal-400',
-    client: 'from-indigo-400 via-purple-400 to-pink-400',
-    candidate: 'from-green-400 via-emerald-400 to-teal-400',
+    admin: 'from-purple-600 via-violet-600 to-indigo-600',
+    employee: 'from-blue-600 via-cyan-600 to-teal-600',
+    client: 'from-indigo-600 via-purple-600 to-pink-600',
+    candidate: 'from-green-600 via-emerald-600 to-teal-600',
   };
 
   const renderIcon = (iconName: string, className: string) => {

@@ -397,6 +397,43 @@ And receive notifications in Russian
 
 ## 4. Non-Functional Requirements
 
+### 4.0 Multi-Tenancy Requirements (CRITICAL - Security Issue Fix)
+
+#### 4.0.1 Tenant Isolation
+- **Data Segregation**: Complete isolation of data between organizations
+- **Organization Context**: Every entity must belong to an organization
+- **Query Filtering**: All database queries must filter by organizationId
+- **Security Rules**: Firestore rules must enforce tenant boundaries
+- **No Cross-Tenant Access**: Users can only access data from their organization(s)
+
+#### 4.0.2 Organization Model
+- **Organization Entity**: Central tenant container for all data
+- **Organization ID**: UUID assigned to each organization
+- **User Membership**: Users belong to one or more organizations
+- **Active Organization**: Users operate within one organization context at a time
+- **Organization Switching**: UI support for switching between organizations (for multi-org users)
+
+#### 4.0.3 Data Model Changes
+All collections must include:
+- `organizationId`: Required field linking to parent organization
+- `createdAt`: Timestamp of creation
+- `updatedAt`: Timestamp of last update
+- Organization-scoped unique constraints where applicable
+
+#### 4.0.4 Authentication & Authorization
+- **Organization Claims**: JWT tokens include current organizationId
+- **Role Scoping**: Roles are organization-specific (admin of Org A ≠ admin of Org B)
+- **Permission Boundaries**: Permissions never cross organization boundaries
+- **Super Admin**: Optional system-wide admin for platform management
+
+#### 4.0.5 Implementation Priority
+**IMMEDIATE FIXES REQUIRED:**
+1. Add organizationId to all existing data
+2. Update security rules to check organizationId
+3. Modify all queries to filter by organizationId
+4. Update UI to show only same-organization data
+5. Add organization context to authentication
+
 ### 4.1 Performance Requirements
 - **API Response Time**: < 200ms average, < 500ms 95th percentile
 - **Page Load Time**: < 2 seconds for dashboard views
@@ -675,6 +712,16 @@ And receive notifications in Russian
 3. **TODO**: Specify accessibility standards (WCAG 2.1 Level AA)
 4. **TODO**: Define dashboard customization capabilities
 5. **TODO**: Confirm notification preferences management UI
+
+### 12.5 CRITICAL SECURITY FIXES REQUIRED (IMMEDIATE)
+1. **TODO [CRITICAL]**: Fix user management showing users from ALL organizations
+2. **TODO [CRITICAL]**: Implement organizationId filtering in all Firestore queries
+3. **TODO [CRITICAL]**: Update security rules to enforce tenant isolation
+4. **TODO [CRITICAL]**: Add organization context to authentication tokens
+5. **TODO [CRITICAL]**: Create organization service for tenant management
+6. **TODO [CRITICAL]**: Migrate existing data to include organizationId
+7. **TODO [CRITICAL]**: Update all UI components to respect organization boundaries
+8. **TODO [CRITICAL]**: Test and validate complete tenant isolation
 
 ## 13. Risk Assessment
 

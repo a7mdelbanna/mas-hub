@@ -19,11 +19,18 @@ export function LoadingSpinner({
     xl: 'h-12 w-12',
   };
 
+  // Inline spinner (no text, minimal spacing)
+  if (size === 'sm' && !text) {
+    return (
+      <div className={cn('animate-spin border-2 border-gray-300 border-t-blue-600 rounded-full', sizeClasses[size], className)} />
+    );
+  }
+
   return (
     <div className="flex flex-col items-center justify-center min-h-[200px] space-y-2">
-      <div className={cn('loading-spinner border-2 border-primary/20 border-t-primary rounded-full', sizeClasses[size], className)} />
+      <div className={cn('animate-spin border-2 border-gray-300 border-t-blue-600 rounded-full', sizeClasses[size], className)} />
       {text && (
-        <p className="text-sm text-muted-foreground animate-pulse">{text}</p>
+        <p className="text-sm text-gray-500 dark:text-gray-400 animate-pulse">{text}</p>
       )}
     </div>
   );

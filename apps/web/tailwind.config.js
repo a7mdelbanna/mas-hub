@@ -52,7 +52,44 @@ export default {
         arabic: ['IBM Plex Sans Arabic', 'Tajawal', 'system-ui'],
         mono: ['JetBrains Mono', 'monospace'],
       },
+      animation: {
+        'blob': 'blob 7s infinite',
+        'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+      },
+      keyframes: {
+        blob: {
+          '0%': {
+            transform: 'translate(0px, 0px) scale(1)',
+          },
+          '33%': {
+            transform: 'translate(30px, -50px) scale(1.1)',
+          },
+          '66%': {
+            transform: 'translate(-20px, 20px) scale(0.9)',
+          },
+          '100%': {
+            transform: 'translate(0px, 0px) scale(1)',
+          },
+        },
+      },
+      animationDelay: {
+        '2000': '2s',
+        '4000': '4s',
+      },
     },
   },
-  plugins: [require("@tailwindcss/forms")],
+  plugins: [
+    require("@tailwindcss/forms"),
+    function({ addUtilities }) {
+      const newUtilities = {
+        '.animation-delay-2000': {
+          'animation-delay': '2s',
+        },
+        '.animation-delay-4000': {
+          'animation-delay': '4s',
+        },
+      }
+      addUtilities(newUtilities)
+    },
+  ],
 }
