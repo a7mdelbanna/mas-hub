@@ -1,8 +1,8 @@
 import { initializeApp } from 'firebase/app';
-import { getAuth, connectAuthEmulator } from 'firebase/auth';
-import { getFirestore, connectFirestoreEmulator } from 'firebase/firestore';
-import { getStorage, connectStorageEmulator } from 'firebase/storage';
-import { getFunctions, connectFunctionsEmulator } from 'firebase/functions';
+import { getAuth } from 'firebase/auth';
+import { getFirestore } from 'firebase/firestore';
+import { getStorage } from 'firebase/storage';
+import { getFunctions } from 'firebase/functions';
 
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -21,20 +21,5 @@ export const auth = getAuth(app);
 export const db = getFirestore(app);
 export const storage = getStorage(app);
 export const functions = getFunctions(app);
-
-// Connect to emulators in development (disabled for now to avoid connection errors)
-if (import.meta.env.DEV && false) {
-  const EMULATOR_HOST = 'localhost';
-
-  try {
-    connectAuthEmulator(auth, `http://${EMULATOR_HOST}:9099`);
-    connectFirestoreEmulator(db, EMULATOR_HOST, 8080);
-    connectStorageEmulator(storage, EMULATOR_HOST, 9199);
-    connectFunctionsEmulator(functions, EMULATOR_HOST, 5001);
-  } catch (error) {
-    // Emulators already connected
-    console.log('Firebase emulators already connected');
-  }
-}
 
 export default app;
