@@ -260,6 +260,7 @@ export interface User extends SoftDeleteEntity {
   portalAccess: {
     employee: boolean;
     client?: string[]; // Array of accountIds
+    candidate?: boolean;
   };
 }
 

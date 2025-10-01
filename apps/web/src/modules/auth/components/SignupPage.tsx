@@ -8,7 +8,7 @@ import { PasswordStrength } from '../../../components/shared/PasswordStrength';
 import { StepProgress } from '../../../components/shared/StepProgress';
 import { useEmailValidation } from '../../../hooks/useEmailValidation';
 import { Mail, Lock, User, Building, Briefcase, Eye, EyeOff, ArrowRight, ArrowLeft, Check, X, Loader2 } from 'lucide-react';
-import { authService } from '../../../services/firebase';
+import { authService } from '../../../services/mock';
 
 interface SignupFormData {
   email: string;

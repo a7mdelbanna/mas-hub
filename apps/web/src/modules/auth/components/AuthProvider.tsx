@@ -1,125 +1,39 @@
 import React, { useEffect } from 'react';
 import { useDispatch } from 'react-redux';
-import { onAuthStateChanged } from 'firebase/auth';
-import { auth } from '../../../lib/firebase/config';
-import { setUser, setLoading, setError } from '../../../store/slices/authSlice';
-import { useAuthUser } from '../hooks/useAuth';
+import { setUser, setLoading } from '../../../store/slices/authSlice';
 
 interface AuthProviderProps {
   children: React.ReactNode;
 }
 
+// Mock user - no Firebase needed
+const mockUser = {
+  id: 'mock-user-123',
+  email: 'admin@mashub.com',
+  name: 'Admin User',
+  displayName: 'Admin User',
+  photoUrl: null,
+  roles: ['admin'],
+  permissions: ['all'],
+  portalAccess: {
+    admin: true,
+    employee: true,
+    client: [],
+    candidate: false
+  }
+};
+
 export function AuthProvider({ children }: AuthProviderProps) {
   const dispatch = useDispatch();
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(
-      auth,
-      async (firebaseUser) => {
-        try {
-          dispatch(setLoading(true));
+    // Auto-login with mock user after short delay
+    dispatch(setLoading(true));
 
-          if (firebaseUser) {
-            // Get custom token claims for roles and permissions
-            const tokenResult = await firebaseUser.getIdTokenResult();
-            const customClaims = tokenResult.claims;
-
-            // Try to fetch user profile from Firestore
-            let userProfile: any = {};
-            try {
-              userProfile = await useAuthUser.getUserProfile(firebaseUser.uid);
-            } catch (profileError) {
-              console.log('User profile not found in Firestore, using auth data only');
-            }
-
-            // Development mode: Mock roles based on email
-            let mockRoles = customClaims.roles || userProfile.roles || [];
-            let mockPortalAccess = customClaims.portalAccess || userProfile.portalAccess;
-
-            if (import.meta.env.DEV) {
-              const mockRoleMapping: { [key: string]: { roles: string[], portalAccess: any } } = {
-                'ahmed@mas.com': {
-                  roles: ['admin'],
-                  portalAccess: { admin: true, employee: true, client: [], candidate: false }
-                },
-                'admin@mas.com': {
-                  roles: ['admin'],
-                  portalAccess: { admin: true, employee: true, client: [], candidate: false }
-                },
-                'sarah@mas.com': {
-                  roles: ['admin'],
-                  portalAccess: { admin: true, employee: true, client: [], candidate: false }
-                },
-                'mike@mas.com': {
-                  roles: ['manager'],
-                  portalAccess: { admin: false, employee: true, client: [], candidate: false }
-                },
-                'john@mas.com': {
-                  roles: ['employee'],
-                  portalAccess: { admin: false, employee: true, client: [], candidate: false }
-                },
-                'jane@mas.com': {
-                  roles: ['employee'],
-                  portalAccess: { admin: false, employee: true, client: [], candidate: false }
-                },
-                'test@test.com': {
-                  roles: ['employee'],
-                  portalAccess: { admin: false, employee: true, client: [], candidate: false }
-                },
-              };
-
-              const userEmail = firebaseUser.email?.toLowerCase();
-              if (userEmail && mockRoleMapping[userEmail]) {
-                mockRoles = mockRoleMapping[userEmail].roles;
-                mockPortalAccess = mockRoleMapping[userEmail].portalAccess;
-              }
-            }
-
-            // Create user object with sanitized data
-            const user = {
-              // Spread profile data first
-              ...userProfile,
-              // Override with auth data to ensure correct values
-              id: firebaseUser.uid,
-              email: firebaseUser.email!,
-              name: firebaseUser.displayName || userProfile.displayName || userProfile.name || firebaseUser.email?.split('@')[0] || '',
-              displayName: firebaseUser.displayName || userProfile.displayName || '',
-              photoUrl: firebaseUser.photoURL || userProfile.photoUrl || null,
-              // Add custom claims from token, fallback to Firestore profile
-              roles: mockRoles,
-              permissions: customClaims.permissions || userProfile.permissions || [],
-              portalAccess: mockPortalAccess || {
-                admin: false,
-                employee: false,
-                client: [],
-                candidate: false
-              },
-            };
-
-            // Remove any non-serializable fields
-            delete user.metadata;
-            delete user.createdAt;
-            delete user.updatedAt;
-
-            dispatch(setUser(user));
-          } else {
-            dispatch(setUser(null));
-          }
-        } catch (error) {
-          console.error('Auth state change error:', error);
-          dispatch(setError(error instanceof Error ? error.message : 'Authentication error'));
-        } finally {
-          dispatch(setLoading(false));
-        }
-      },
-      (error) => {
-        console.error('Auth state change error:', error);
-        dispatch(setError(error.message));
-        dispatch(setLoading(false));
-      }
-    );
-
-    return unsubscribe;
+    setTimeout(() => {
+      dispatch(setUser(mockUser));
+      dispatch(setLoading(false));
+    }, 500);
   }, [dispatch]);
 
   return <>{children}</>;

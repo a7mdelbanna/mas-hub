@@ -1,4 +1,4 @@
-export * from '../../../types/models';
+export * from '../../../types';
 
 // Additional frontend-specific types
 export interface CourseWithContent {
@@ -173,4 +173,4 @@ import {
   CourseAudience,
   AssignmentStatus,
   Question
-} from '../../../types/models';
+} from '../../../types';

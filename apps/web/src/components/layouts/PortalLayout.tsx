@@ -4,7 +4,7 @@ import type { RootState } from '../../store';
 import { toggleSidebar, setSidebarCollapsed } from '../../store/slices/uiSlice';
 import { PortalHeader } from './PortalHeader';
 import { PortalSidebar } from './PortalSidebar';
-import type { User, PortalType } from '../../types/models';
+import type { User, PortalType } from '../../types';
 import { cn } from '../../lib/utils/cn';
 
 interface SidebarItem {

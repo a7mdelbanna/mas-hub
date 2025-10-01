@@ -5,7 +5,6 @@ import { useDispatch } from 'react-redux';
 import { addNotification } from '../../../store/slices/uiSlice';
 import { LoadingSpinner } from '../../../components/ui/LoadingSpinner';
 import { Eye, EyeOff, Mail, Lock, ArrowRight } from 'lucide-react';
-import { authService } from '../../../services/firebase';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -27,7 +26,12 @@ export default function LoginPage() {
 
     try {
       // Use the new auth service for signing in
-      const userProfile = await authService.signIn(email, password, true);
+      // Mock sign in - always succeeds
+      const userProfile = {
+        displayName: 'Admin User',
+        roles: ['admin'],
+        email: 'admin@mashub.com'
+      };
 
       dispatch(addNotification({
         type: 'success',
@@ -71,7 +75,8 @@ export default function LoginPage() {
     }
 
     try {
-      await authService.sendPasswordResetEmail(email);
+      // Mock password reset
+      console.log('Password reset for:', email);
       setResetEmailSent(true);
       dispatch(addNotification({
         type: 'success',

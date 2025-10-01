@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
-import { EmployeeDashboard } from '../../modules/dashboard/components/EmployeeDashboard';
-import { Task, Timesheet, Announcement } from '../../types/models';
+import EmployeeDashboard from '../../modules/dashboard/components/EmployeeDashboard';
+import type { Task, Timesheet, Announcement } from '../../types';
 
 // Mock hooks and services
 const mockUseAuth = vi.fn();

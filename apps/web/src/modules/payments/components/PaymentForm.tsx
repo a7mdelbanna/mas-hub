@@ -15,7 +15,7 @@ import { RadioGroup, RadioGroupItem } from '../../../components/ui/radio-group';
 import { Separator } from '../../../components/ui/separator';
 import { Loader2, CreditCard, Building, Smartphone, Banknote } from 'lucide-react';
 import { usePayment } from '../hooks/usePayment';
-import { PaymentMethod, Currency } from '../../../types/models';
+import { PaymentMethod, Currency } from '../../../types';
 import { formatCurrency } from '../utils/payment-utils';
 
 // Initialize Stripe

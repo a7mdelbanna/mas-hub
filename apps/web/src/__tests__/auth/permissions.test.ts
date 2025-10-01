@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { Permission, Role, User } from '../../types/models';
+import type { Permission, Role, User } from '../../types';
 
 // Mock permission service
 const mockPermissionService = {

@@ -1,8 +1,6 @@
 import { useSelector } from 'react-redux';
 import type { RootState } from '../../../store';
-import { doc, getDoc } from 'firebase/firestore';
-import { db } from '../../../lib/firebase/config';
-import type { User } from '../../../types/models';
+import type { User } from '../../../types';
 
 export function useAuth() {
   const authState = useSelector((state: RootState) => state.auth);
@@ -56,29 +54,21 @@ export function useAuth() {
 // Default export for the hook
 export default useAuth;
 
-// Utility functions for Firebase operations
+// Mock utility functions - no Firebase needed
 export const useAuthUser = {
   async getUserProfile(userId: string): Promise<Partial<User>> {
-    try {
-      const userDoc = await getDoc(doc(db, 'users', userId));
-      if (userDoc.exists()) {
-        return userDoc.data() as Partial<User>;
-      }
-      throw new Error('User profile not found');
-    } catch (error) {
-      console.error('Error fetching user profile:', error);
-      throw error;
-    }
+    // Return mock user profile
+    return {
+      id: userId,
+      email: 'admin@mashub.com',
+      displayName: 'Admin User',
+      roles: ['admin'],
+      permissions: ['all'],
+    };
   },
 
   async updateUserProfile(userId: string, updates: Partial<User>): Promise<void> {
-    try {
-      // This would typically be done via a Cloud Function to maintain security
-      // For now, we'll just log it
-      console.log('User profile update requested:', userId, updates);
-    } catch (error) {
-      console.error('Error updating user profile:', error);
-      throw error;
-    }
+    // Mock update - just log it
+    console.log('User profile update requested:', userId, updates);
   },
 };

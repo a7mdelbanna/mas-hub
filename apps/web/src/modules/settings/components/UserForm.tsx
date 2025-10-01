@@ -4,10 +4,10 @@ import { LoadingSpinner } from '../../../components/ui/LoadingSpinner';
 import { useDispatch } from 'react-redux';
 import { addNotification } from '../../../store/slices/uiSlice';
 import { User as UserIcon, Mail, Phone, Building, UserCheck, Globe, Calendar, ToggleLeft, ToggleRight } from 'lucide-react';
-import { userService } from '../../../lib/firebase/services/user.service';
-import type { CreateUserRequest } from '../../../lib/firebase/services/user.service';
-import { type User } from '../../../lib/firebase/services/auth.service';
-import { useDepartments, useRoles, useManagers } from '../../../hooks/useUsers';
+import { userService } from '../../../services/mock/user.service';
+import type { CreateUserRequest } from '../../../services/mock/user.service';
+import { type User } from '../../../services/mock/auth.service';
+import { useDepartments, useRoles, useManagers } from '../../../hooks/useMockUsers';
 
 interface UserFormProps {
   isOpen: boolean;

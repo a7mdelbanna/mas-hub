@@ -1,75 +1,86 @@
-# MAS Business OS
+# MAS Business OS - Frontend UI
 
-Enterprise management system for MAS operations including Projects, Finance, CRM, HR, Support, and more.
+Enterprise management system UI for MAS operations including Projects, Finance, CRM, HR, Support, and more.
 
 ## 🚀 Overview
 
-MAS Business OS is an all-in-one enterprise platform that centralizes:
-- Project Management & Delivery
-- Finance & Billing
-- CRM & Sales Pipeline
-- HR & Recruitment
-- Support & SLA Management
-- Learning Management System (LMS)
+MAS Business OS is a **frontend-only** showcase application demonstrating a comprehensive enterprise platform UI that includes:
+- Project Management & Delivery interfaces
+- Finance & Billing dashboards
+- CRM & Sales Pipeline views
+- HR & Recruitment screens
+- Support & SLA Management panels
+- Learning Management System (LMS) UI
 - Multi-Portal System (Employee, Client, Candidate)
-- Automation & Workflows
+- Modern, responsive design with dark mode support
+
+**Note: This is a frontend-only project with mock data services. No backend or database is required.**
 
 ## 📋 Documentation
 
 - [Product Requirements Document (PRD)](./docs/PRD.md)
 - [Technical Architecture](./docs/architecture.md)
-- [API Specification](./docs/api-spec.md)
 - [Design System](./docs/design-system.md)
-- [Firestore Schema](./docs/firestore-schema.md)
+- [UI Components Guide](./docs/components.md)
 
 ## 🏗️ Project Structure
 
 ```
 /
-├── docs/                    # Documentation
-├── design-system/           # Design tokens and UI specifications
-├── src/
-│   ├── types/              # TypeScript type definitions
-│   ├── lib/                # Shared libraries
-│   └── modules/            # Feature modules
-├── functions/              # Firebase Cloud Functions
-├── orchestration/          # Build pipeline orchestration
-└── setup/                  # Setup and scaffolding scripts
+├── apps/web/               # React frontend application
+│   ├── src/
+│   │   ├── components/     # Reusable UI components
+│   │   ├── modules/        # Feature modules
+│   │   ├── services/mock/  # Mock data services
+│   │   ├── hooks/          # Custom React hooks
+│   │   ├── store/          # Redux store
+│   │   └── types/          # TypeScript definitions
+│   └── public/             # Static assets
+├── docs/                   # Documentation
+└── design-system/          # Design tokens and specifications
 ```
 
 ## 🛠️ Technology Stack
 
-- **Frontend**: React 18 + TypeScript + Material-UI
-- **Backend**: Firebase (Firestore, Auth, Functions, Storage)
-- **Payments**: Stripe & Paymob integration
-- **Real-time**: Firestore listeners + Cloud Messaging
-- **Deployment**: Firebase Hosting + Cloud Functions
+- **Framework**: React 19 with Vite
+- **Language**: TypeScript
+- **Styling**: Tailwind CSS
+- **State Management**: Redux Toolkit
+- **Routing**: React Router v7
+- **Forms**: React Hook Form with Zod validation
+- **Data Fetching**: TanStack Query
+- **Internationalization**: i18next
+- **Icons**: Lucide React
+- **Charts**: Recharts
+- **Testing**: Vitest
+- **Build Tool**: Vite
 
-## 📊 Implementation Status
+## 📊 Features
 
-| Phase | Status | Progress |
-|-------|--------|----------|
-| Phase 1 (MVP) | In Development | 33% |
-| Phase 2 | Planned | 0% |
-| Phase 3 | Planned | 0% |
+### Completed UI Modules
+- ✅ Multi-portal authentication screens
+- ✅ Admin dashboard with analytics
+- ✅ User management interface
+- ✅ Organization settings
+- ✅ Theme customization
+- ✅ Project management views
+- ✅ Finance & billing dashboards
+- ✅ CRM pipeline interface
+- ✅ Support ticket system
+- ✅ Dark mode support
+- ✅ Responsive mobile design
 
-### Completed Modules
-- ✅ Product Requirements Document
-- ✅ System Architecture
-- ✅ Design System
-- ✅ Firestore Schema
-
-### In Progress
-- 🚧 Frontend Application
-- 🚧 Business Rules Engine
-- 🚧 Backend Services
+### Mock Services
+- 🔧 Authentication (accepts any credentials)
+- 🔧 User management with CRUD operations
+- 🔧 Organization switching
+- 🔧 Sample data for all modules
 
 ## 🚦 Getting Started
 
 ### Prerequisites
 - Node.js 18+
 - npm or pnpm
-- Firebase CLI
 - Git
 
 ### Installation
@@ -80,50 +91,82 @@ git clone https://github.com/a7mdelbanna/mas-hub.git
 cd mas-hub
 ```
 
-2. Install dependencies:
+2. Navigate to the web application:
+```bash
+cd apps/web
+```
+
+3. Install dependencies:
 ```bash
 npm install
 # or
 pnpm install
 ```
 
-3. Set up Firebase:
-```bash
-firebase login
-firebase use mashub-a0725
-```
-
-4. Copy environment variables:
-```bash
-cp .env.example .env
-# Edit .env with your Firebase config
-```
-
-5. Run the development server:
+4. Run the development server:
 ```bash
 npm run dev
 ```
 
+5. Open [http://localhost:3000](http://localhost:3000) in your browser.
+
+### Demo Access
+The application runs with mock authentication. Use any email/password combination to log in:
+- Example: `admin@mashub.com` / `any-password`
+
 ## 🔧 Development
-
-### Orchestration Pipeline
-
-The project uses an orchestration system to manage the development pipeline:
-
-```bash
-cd orchestration
-pnpm orchestrator status  # Check pipeline status
-pnpm orchestrator next    # See next available tasks
-pnpm orchestrator run <task>  # Run a specific task
-```
 
 ### Available Scripts
 
-- `npm run dev` - Start development server
-- `npm run build` - Build for production
-- `npm run test` - Run tests
-- `npm run lint` - Lint code
-- `npm run deploy` - Deploy to Firebase
+From the `apps/web` directory:
+
+```bash
+# Development server with hot reload
+npm run dev
+
+# Build for production
+npm run build
+
+# Preview production build
+npm run preview
+
+# Run tests
+npm run test
+
+# Type checking
+npm run type-check
+
+# Linting
+npm run lint
+
+# Fix linting issues
+npm run lint:fix
+```
+
+### Mock Data Customization
+
+All mock data is located in `/apps/web/src/services/mock/`. You can modify these files to:
+- Add new mock users
+- Change organization settings
+- Customize demo data
+- Adjust mock API responses
+
+### UI Customization
+
+The application uses Tailwind CSS for styling. Key customization points:
+- `/apps/web/tailwind.config.js` - Tailwind configuration
+- `/apps/web/src/styles/globals.css` - Global styles
+- Theme settings are persisted in localStorage
+
+## 🎨 Design System
+
+The application includes a comprehensive design system with:
+- Consistent color palette
+- Typography scale
+- Spacing system
+- Component library
+- Dark mode variants
+- Responsive breakpoints
 
 ## 📝 License
 
@@ -135,4 +178,4 @@ MAS Development Team
 
 ---
 
-Built with Firebase and React
+Built with React, TypeScript, and Tailwind CSS - Frontend UI Only

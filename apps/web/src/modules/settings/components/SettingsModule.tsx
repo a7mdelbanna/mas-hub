@@ -7,8 +7,7 @@ const OrganizationSettings = React.lazy(() => import('./OrganizationSettings'));
 const UserManagement = React.lazy(() => import('./UserManagement'));
 const ThemeSettings = React.lazy(() => import('./ThemeSettings'));
 const BrandingSettings = React.lazy(() => import('./BrandingSettings'));
-const TestFirebasePermissions = React.lazy(() => import('../../../components/TestFirebasePermissions'));
-const InitializeDatabase = React.lazy(() => import('../../../components/InitializeDatabase'));
+// Removed Firebase test components - frontend only
 
 const settingsTabs = [
   {
@@ -113,12 +112,7 @@ export default function SettingsModule() {
                 <Route path="/users" element={<UserManagement />} />
                 <Route path="/theme" element={<ThemeSettings />} />
                 <Route path="/branding" element={<BrandingSettings />} />
-                <Route path="/debug" element={
-                  <div className="space-y-6">
-                    <TestFirebasePermissions />
-                    <InitializeDatabase />
-                  </div>
-                } />
+                {/* Debug route removed - no backend components */}
                 <Route path="*" element={
                   <div className="text-center py-12">
                     <p className="text-gray-500 dark:text-gray-400">Settings page not found</p>

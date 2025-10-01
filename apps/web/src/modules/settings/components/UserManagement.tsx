@@ -2,9 +2,17 @@ import React, { useState, useEffect } from 'react';
 import { Plus, Search, Edit, Trash2, Users, Crown, Shield, UserCheck, Loader2 } from 'lucide-react';
 import { useDispatch } from 'react-redux';
 import { addNotification } from '../../../store/slices/uiSlice';
-import { useUsers } from '../../../hooks/useUsers';
-import { userService } from '../../../lib/firebase/services/user.service';
-import { type User } from '../../../lib/firebase/services/auth.service';
+import { useUsers } from '../../../hooks/useMockUsers';
+
+interface User {
+  id: string;
+  email: string;
+  displayName: string;
+  roles: string[];
+  active: boolean;
+  createdAt?: Date;
+  lastLoginAt?: Date;
+}
 import { UserForm } from './UserForm';
 import { ConfirmDialog } from '../../../components/ui/ConfirmDialog';
 import { LoadingSpinner } from '../../../components/ui/LoadingSpinner';
@@ -61,7 +69,8 @@ export default function UserManagement() {
 
     setIsDeleting(true);
     try {
-      await userService.deleteUser(userToDelete.id);
+      // Mock delete user
+      console.log('Deleting user:', userToDelete.id);
       dispatch(addNotification({
         type: 'success',
         title: 'User Deleted',

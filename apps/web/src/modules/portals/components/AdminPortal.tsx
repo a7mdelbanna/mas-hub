@@ -6,6 +6,7 @@ import { useAuth } from '../../auth/hooks/useAuth';
 // Lazy load admin modules
 const AdminDashboard = React.lazy(() => import('../../dashboard/components/AdminDashboard'));
 const SettingsModule = React.lazy(() => import('../../settings/components/SettingsModule'));
+const ProjectsModule = React.lazy(() => import('../../projects/components/ProjectsModule'));
 
 export default function AdminPortal() {
   const auth = useAuth();
@@ -32,8 +33,8 @@ export default function AdminPortal() {
         <Route path="/dashboard" element={<AdminDashboard />} />
         <Route path="/settings/*" element={<SettingsModule />} />
 
-        {/* Placeholder routes for other modules */}
-        <Route path="/projects/*" element={<div className="p-6">Projects Module (Coming Soon)</div>} />
+        {/* Projects Module */}
+        <Route path="/projects/*" element={<ProjectsModule />} />
         <Route path="/finance/*" element={<div className="p-6">Finance Module (Coming Soon)</div>} />
         <Route path="/crm/*" element={<div className="p-6">CRM Module (Coming Soon)</div>} />
         <Route path="/support/*" element={<div className="p-6">Support Module (Coming Soon)</div>} />

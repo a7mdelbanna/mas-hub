@@ -1,8 +1,7 @@
 import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../auth/hooks/useAuth';
-import { doc, updateDoc } from 'firebase/firestore';
-import { db } from '../../../lib/firebase/config';
+// Mock onboarding - no backend needed
 import { Check, ArrowRight } from 'lucide-react';
 
 export default function OnboardingPage() {
@@ -19,10 +18,8 @@ export default function OnboardingPage() {
     if (!user) return;
 
     try {
-      await updateDoc(doc(db, 'users', user.id), {
-        onboardingCompleted: true,
-        updatedAt: new Date(),
-      });
+      // Mock onboarding completion
+      localStorage.setItem('onboardingCompleted', 'true');
 
       const userRoles = user.roles || [];
 

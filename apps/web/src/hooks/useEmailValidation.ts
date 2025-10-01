@@ -60,8 +60,8 @@ export function useEmailValidation(email: string, debounceMs: number = 500) {
       setValidationState({
         isValid: result.available,
         isChecking: false,
-        message: result.message,
-        error: result.available ? null : result.message,
+        message: result.message || '',
+        error: result.available ? null : (result.message || 'Email validation failed'),
       });
     } catch (error: any) {
       setValidationState({

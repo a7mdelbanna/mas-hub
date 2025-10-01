@@ -1,5 +1,5 @@
 import { api } from './baseApi';
-import type { User } from '../../types/models';
+import type { User } from '../../types';
 import { mockBrandingService } from './mockBrandingService';
 
 // Use mock service for development

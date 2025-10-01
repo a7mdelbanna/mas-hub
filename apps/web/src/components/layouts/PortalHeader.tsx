@@ -2,8 +2,6 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
 import { useTranslation } from 'react-i18next';
-import { signOut } from 'firebase/auth';
-import { auth } from '../../lib/firebase/config';
 import { logout } from '../../store/slices/authSlice';
 import { addNotification } from '../../store/slices/uiSlice';
 import { useTheme } from '../ui/ThemeProvider';
@@ -52,7 +50,7 @@ export function PortalHeader({
 
   const handleLogout = async () => {
     try {
-      await signOut(auth);
+      // Mock sign out - just dispatch logout
       dispatch(logout());
       dispatch(addNotification({
         type: 'success',

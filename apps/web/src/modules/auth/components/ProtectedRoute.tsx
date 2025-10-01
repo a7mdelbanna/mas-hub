@@ -2,7 +2,7 @@ import React from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { LoadingSpinner } from '../../../components/ui/LoadingSpinner';
-import type { PortalType } from '../../../types/models';
+import type { PortalType } from '../../../types';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;

@@ -1,5 +1,5 @@
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
-import type { Language, PortalType } from '../../types/models';
+import type { Language, PortalType } from '../../types';
 
 interface UIState {
   theme: 'light' | 'dark' | 'system';

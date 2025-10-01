@@ -20,7 +20,6 @@ export default defineConfig({
       output: {
         manualChunks: {
           vendor: ['react', 'react-dom', 'react-router-dom'],
-          firebase: ['firebase/app', 'firebase/auth', 'firebase/firestore', 'firebase/storage'],
           ui: ['lucide-react', '@tailwindcss/forms'],
           state: ['@reduxjs/toolkit', 'react-redux', '@tanstack/react-query'],
           forms: ['react-hook-form', '@hookform/resolvers', 'zod'],
@@ -37,7 +36,7 @@ export default defineConfig({
     cors: true,
   },
   preview: {
-    port: 3001,
+    port: 3000,
   },
   define: {
     global: 'globalThis',
